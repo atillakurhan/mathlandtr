@@ -14,16 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          answer_numeric: number | null
+          answer_text: string | null
+          choices: Json | null
+          class_level: number
+          created_at: string
+          created_by: string | null
+          difficulty: string
+          game: string
+          id: string
+          locale: string
+          payload: Json | null
+          prompt: string
+        }
+        Insert: {
+          answer_numeric?: number | null
+          answer_text?: string | null
+          choices?: Json | null
+          class_level: number
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          game: string
+          id?: string
+          locale?: string
+          payload?: Json | null
+          prompt: string
+        }
+        Update: {
+          answer_numeric?: number | null
+          answer_text?: string | null
+          choices?: Json | null
+          class_level?: number
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          game?: string
+          id?: string
+          locale?: string
+          payload?: Json | null
+          prompt?: string
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          class_level: number
+          created_at: string
+          game: string
+          id: string
+          player_name: string
+          score: number
+        }
+        Insert: {
+          class_level: number
+          created_at?: string
+          game: string
+          id?: string
+          player_name: string
+          score?: number
+        }
+        Update: {
+          class_level?: number
+          created_at?: string
+          game?: string
+          id?: string
+          player_name?: string
+          score?: number
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "teacher" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +284,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "teacher", "student"],
+    },
   },
 } as const
