@@ -90,16 +90,13 @@ export default function ArcheryGame() {
     setTimeout(() => setFlash(null), 250);
   }
 
-  const unlocked = {
-    easy: true,
-    medium: score >= 0 || true, // free to switch before start; thresholds enforced for cross-session via high score
-    hard: true,
-  };
-  // Use thresholds: require previous total score in localStorage
   const totalKey = "ma_total_archery";
   const total = typeof window !== "undefined" ? Number(localStorage.getItem(totalKey) ?? 0) : 0;
-  unlocked.medium = total >= unlockThresholds.medium;
-  unlocked.hard = total >= unlockThresholds.hard;
+  const unlocked = {
+    easy: true,
+    medium: total >= unlockThresholds.medium,
+    hard: total >= unlockThresholds.hard,
+  };
   useEffect(() => {
     if (!running && score > 0 && typeof window !== "undefined") {
       localStorage.setItem(totalKey, String(total + score));
