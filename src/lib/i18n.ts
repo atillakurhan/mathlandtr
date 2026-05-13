@@ -99,6 +99,18 @@ export const dict: Dict = {
     tr: "Soru havuzu boş — varsayılan örnek sorular kullanılıyor.",
     de: "Fragenpool leer — Standardbeispiele werden verwendet.",
   },
+  // Kid-friendly encouragement
+  cheer_great:    { tr: "Harikasın! 🌟", de: "Super! 🌟" },
+  cheer_nice:     { tr: "Aferin sana!", de: "Toll gemacht!" },
+  cheer_smart:    { tr: "Çok zekisin!", de: "Sehr clever!" },
+  cheer_keep:     { tr: "Devam et böyle!", de: "Weiter so!" },
+  cheer_oops:     { tr: "Boş ver, tekrar dene!", de: "Kein Problem, nochmal!" },
+  cheer_almost:   { tr: "Az kaldı, dene!", de: "Fast geschafft!" },
+  cheer_try:      { tr: "Düşün ve tekrar dene", de: "Denk nach und versuch's nochmal" },
+  the_answer_was: { tr: "Doğrusu", de: "Richtig wäre" },
+  combo:          { tr: "Üst üste {n}!", de: "{n} in Folge!" },
+  sound_on:       { tr: "Ses açık", de: "Ton an" },
+  sound_off:      { tr: "Ses kapalı", de: "Ton aus" },
 };
 
 export function t(key: keyof typeof dict, lang: Lang, vars?: Record<string, string | number>) {
@@ -108,12 +120,19 @@ export function t(key: keyof typeof dict, lang: Lang, vars?: Record<string, stri
 }
 
 export const GAMES = [
-  { id: "archery", nameKey: "g_archery_name", descKey: "g_archery_desc", emoji: "🏹" },
-  { id: "mathpoly", nameKey: "g_mathpoly_name", descKey: "g_mathpoly_desc", emoji: "🎲" },
-  { id: "goalie", nameKey: "g_goalie_name", descKey: "g_goalie_desc", emoji: "🥅" },
-  { id: "pyramid", nameKey: "g_pyramid_name", descKey: "g_pyramid_desc", emoji: "🔺" },
-  { id: "racer", nameKey: "g_racer_name", descKey: "g_racer_desc", emoji: "🏎️" },
-  { id: "market", nameKey: "g_market_name", descKey: "g_market_desc", emoji: "🛒" },
+  { id: "archery",  nameKey: "g_archery_name",  descKey: "g_archery_desc",  emoji: "🏹", gradient: "from-emerald-400 via-teal-400 to-sky-500", scene: "🌳🎯🍃" },
+  { id: "mathpoly", nameKey: "g_mathpoly_name", descKey: "g_mathpoly_desc", emoji: "🎲", gradient: "from-fuchsia-500 via-purple-500 to-indigo-500", scene: "💎✨🏰" },
+  { id: "goalie",   nameKey: "g_goalie_name",   descKey: "g_goalie_desc",   emoji: "⚽", gradient: "from-sky-400 via-blue-500 to-emerald-500", scene: "🥅⚽🌤️" },
+  { id: "pyramid",  nameKey: "g_pyramid_name",  descKey: "g_pyramid_desc",  emoji: "🔺", gradient: "from-amber-400 via-orange-500 to-rose-500", scene: "🐪☀️🏜️" },
+  { id: "racer",    nameKey: "g_racer_name",    descKey: "g_racer_desc",    emoji: "🏎️", gradient: "from-rose-500 via-red-500 to-orange-500", scene: "🏁🏎️💨" },
+  { id: "market",   nameKey: "g_market_name",   descKey: "g_market_desc",   emoji: "🛒", gradient: "from-lime-400 via-green-500 to-teal-500", scene: "🍎🥕🧀" },
 ] as const;
 
 export type GameId = (typeof GAMES)[number]["id"];
+
+export const CHEERS_OK  = ["cheer_great", "cheer_nice", "cheer_smart", "cheer_keep"] as const;
+export const CHEERS_BAD = ["cheer_oops", "cheer_almost", "cheer_try"] as const;
+export function pickCheer(ok: boolean) {
+  const a = ok ? CHEERS_OK : CHEERS_BAD;
+  return a[Math.floor(Math.random() * a.length)] as keyof typeof dict;
+}
