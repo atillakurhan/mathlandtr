@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useQuestions, submitScore, type Difficulty } from "@/hooks/use-questions";
 import { generateFallback, type FQ } from "@/lib/fallback-questions";
-import { t, GAMES, type GameId } from "@/lib/i18n";
+import { t, GAMES, pickCheer, type GameId } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { Lock, RotateCcw, Home } from "lucide-react";
+import { Lock, RotateCcw, Home, Volume2, VolumeX } from "lucide-react";
+import { Confetti } from "@/components/Confetti";
+import { Mascot } from "@/components/Mascot";
+import { sfx } from "@/lib/sound";
 
 export interface MergedQ {
   prompt: string;
@@ -100,15 +103,26 @@ export function GameEndOverlay({
   useEffect(() => {
     if (submitted) return;
     submitScore(playerName || "Anonim", game, classLevel, score);
+    sfx.win();
     setSubmitted(true);
   }, [submitted, playerName, game, classLevel, score]);
+
+  const stars = score > 150 ? 3 : score > 60 ? 2 : score > 0 ? 1 : 0;
+
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm rounded-xl">
-      <div className="rounded-xl bg-card p-8 text-center shadow-card border border-border max-w-sm w-[90%]">
-        <div className="text-5xl mb-2">{g.emoji}</div>
-        <h3 className="text-xl font-bold">{t("finished", lang)}</h3>
-        <p className="text-4xl font-extrabold text-primary my-3 tabular-nums">{score}</p>
+      <Confetti show={stars > 0} count={36} />
+      <div className="rounded-2xl bg-card p-8 text-center shadow-card border border-border max-w-sm w-[90%] animate-in fade-in zoom-in duration-300">
+        <div className="text-6xl mb-2 animate-bounce">{g.emoji}</div>
+        <h3 className="text-2xl font-extrabold">{t("finished", lang)}</h3>
+        <div className="my-3 flex justify-center gap-1 text-3xl">
+          {[1, 2, 3].map((i) => (
+            <span key={i} className={i <= stars ? "" : "opacity-20 grayscale"}>⭐</span>
+          ))}
+        </div>
+        <p className="text-5xl font-extrabold text-primary tabular-nums">{score}</p>
         <p className="text-sm text-muted-foreground">{t("score", lang)}</p>
+        <p className="text-sm font-semibold text-success mt-2">{t(stars >= 2 ? "cheer_great" : "cheer_keep", lang)}</p>
         <div className="mt-5 flex gap-2 justify-center">
           <Button onClick={onRestart}><RotateCcw className="h-4 w-4 mr-1" />{t("play_again", lang)}</Button>
           <Link to="/"><Button variant="outline"><Home className="h-4 w-4 mr-1" />{t("back_home", lang)}</Button></Link>
@@ -129,21 +143,60 @@ export function GameHeader({
 }) {
   const { lang, playerName } = useApp();
   const g = GAMES.find((x) => x.id === game)!;
+  const [muted, setMuted] = useState(sfx.isMuted());
   return (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex items-center gap-2">
-        <span className="text-3xl">{g.emoji}</span>
+      <div className={`flex items-center gap-2 rounded-xl bg-gradient-to-br ${g.gradient} px-3 py-2 text-white shadow-soft`}>
+        <span className="text-3xl drop-shadow">{g.emoji}</span>
         <div>
-          <h1 className="font-bold text-lg leading-tight">{t(g.nameKey, lang)}</h1>
-          <p className="text-xs text-muted-foreground">{playerName || "Anonim"}</p>
+          <h1 className="font-extrabold text-lg leading-tight drop-shadow">{t(g.nameKey, lang)}</h1>
+          <p className="text-[11px] opacity-90">{playerName || "Anonim"}</p>
         </div>
       </div>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2">
         {right}
-        <div className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground font-bold tabular-nums shadow-soft">
+        <button
+          onClick={() => { const v = !muted; sfx.setMuted(v); setMuted(v); }}
+          className="rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground"
+          title={muted ? t("sound_off", lang) : t("sound_on", lang)}
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
+        <div className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground font-bold tabular-nums shadow-soft text-base">
           {score}
         </div>
       </div>
     </div>
   );
 }
+
+// Floating reaction bubble — shows "+10", cheer text, mascot mood briefly
+export function FeedbackBubble({
+  feedback,
+}: {
+  feedback: null | { ok: boolean; delta?: number; correctValue?: number | string };
+}) {
+  const { lang } = useApp();
+  if (!feedback) return null;
+  const cheer = pickCheer(feedback.ok);
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 animate-in fade-in zoom-in duration-200">
+      <div className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-2 shadow-glow border-2 ${
+        feedback.ok ? "bg-success text-success-foreground border-white/60" : "bg-destructive text-destructive-foreground border-white/60"
+      }`}>
+        <Mascot mood={feedback.ok ? "cheer" : "sad"} size={44} />
+        <p className="text-sm font-extrabold">{t(cheer, lang)}</p>
+        {feedback.ok && typeof feedback.delta === "number" && (
+          <p className="text-xs font-bold">+{feedback.delta}</p>
+        )}
+        {!feedback.ok && feedback.correctValue !== undefined && (
+          <p className="text-[11px] font-semibold opacity-90">
+            {t("the_answer_was", lang)}: <span className="font-bold">{feedback.correctValue}</span>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export { sfx, Confetti, Mascot };
