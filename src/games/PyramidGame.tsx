@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { GameEndOverlay, GameHeader } from "./GameShell";
+import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/lib/i18n";
 
-// Number pyramid: bottom row has N numbers, each upper cell = sum of two below.
-// User fills upper cells. Score for each correct cell, bonus for solving fully.
 export default function PyramidGame() {
   const { lang, classLevel } = useApp();
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number }>(null);
   const TOTAL = 6;
   const N = classLevel === 8 ? 5 : 4;
 
@@ -32,7 +32,6 @@ export default function PyramidGame() {
     return rows;
   }, [bottom, N]);
 
-  // values[row][i] — row 0 = bottom prefilled
   const [values, setValues] = useState<(number | "")[][]>(() => [
     bottom,
     ...Array.from({ length: N - 1 }, (_, r) => Array.from({ length: N - 1 - r }, () => "" as number | "")),
@@ -59,27 +58,44 @@ export default function PyramidGame() {
       }
     }
     const bonus = correct === total ? 20 : 0;
-    setScore((s) => s + correct * 5 + bonus);
-    if (round + 1 >= TOTAL) setFinished(true);
-    else setRound((r) => r + 1);
+    const delta = correct * 5 + bonus;
+    setScore((s) => s + delta);
+    if (correct === total) sfx.correct(); else if (correct === 0) sfx.wrong(); else sfx.pop();
+    setFeedback({ ok: correct === total, delta });
+    setTimeout(() => {
+      setFeedback(null);
+      if (round + 1 >= TOTAL) setFinished(true);
+      else setRound((r) => r + 1);
+    }, 1200);
   }
 
-  function restart() { setScore(0); setRound(0); setFinished(false); }
+  function restart() { setScore(0); setRound(0); setFinished(false); setFeedback(null); }
 
   return (
     <div className="space-y-4">
-      <GameHeader game="pyramid" score={score} right={<span className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold">{round + 1}/{TOTAL}</span>} />
+      <GameHeader game="pyramid" score={score} right={<span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">{round + 1}/{TOTAL}</span>} />
 
-      <div className="relative rounded-xl border border-border bg-board p-6 shadow-card">
-        <div className="flex flex-col-reverse items-center gap-2">
+      <div className="relative rounded-2xl border border-border bg-gradient-to-b from-orange-200 via-amber-100 to-yellow-50 p-6 shadow-card overflow-hidden">
+        {/* Desert scene */}
+        <div className="absolute top-3 right-4 text-5xl">☀️</div>
+        <div className="absolute top-5 right-20 text-2xl opacity-70">☁️</div>
+        <div className="absolute bottom-2 left-3 text-3xl">🐪</div>
+        <div className="absolute bottom-2 right-3 text-2xl">🌵</div>
+        <div className="absolute left-2 top-2"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "think") : "think"} size={48} /></div>
+
+        <p className="text-center text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3 mt-1">
+          {classLevel === 3 ? "Alttaki sayıları topla, üst kareye yaz" : "Summiere die Nachbarn nach oben"}
+        </p>
+
+        <div className="relative flex flex-col-reverse items-center gap-2">
           {Array.from({ length: N }).map((_, r) => (
             <div key={r} className="flex gap-2">
               {Array.from({ length: N - r }).map((_, i) => {
                 const isBottom = r === 0;
                 const v = values[r]?.[i];
-                const correct = !isBottom && v === solution[r][i];
+                const correct = !isBottom && v !== "" && v === solution[r][i];
                 return isBottom ? (
-                  <div key={i} className="flex h-12 w-14 sm:h-14 sm:w-16 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold shadow-soft">
+                  <div key={i} className="flex h-12 w-14 sm:h-14 sm:w-16 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white font-extrabold text-lg shadow-card border-2 border-amber-300">
                     {bottom[i]}
                   </div>
                 ) : (
@@ -88,7 +104,7 @@ export default function PyramidGame() {
                     type="number"
                     value={v === "" ? "" : v}
                     onChange={(e) => setCell(r, i, e.target.value)}
-                    className={`h-12 w-14 sm:h-14 sm:w-16 text-center font-bold text-base ${correct ? "ring-2 ring-success" : ""}`}
+                    className={`h-12 w-14 sm:h-14 sm:w-16 text-center font-extrabold text-base bg-white/90 ${correct ? "ring-2 ring-success bg-success/10" : ""}`}
                   />
                 );
               })}
@@ -97,9 +113,10 @@ export default function PyramidGame() {
         </div>
 
         <div className="mt-5 flex justify-center">
-          <Button onClick={check}>{t("save", lang)} ✓</Button>
+          <Button onClick={check} size="lg" disabled={!!feedback}>✨ {t("save", lang)}</Button>
         </div>
 
+        <FeedbackBubble feedback={feedback} />
         {finished && <GameEndOverlay score={score} game="pyramid" onRestart={restart} />}
       </div>
     </div>

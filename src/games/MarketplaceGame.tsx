@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { GameEndOverlay, GameHeader } from "./GameShell";
+import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/lib/i18n";
@@ -9,26 +10,32 @@ interface Scenario {
   prompt: string;
   answer: number;
   unit: string;
+  emoji: string;
 }
+
+const PRODUCTS = ["🍎", "🥕", "🍞", "🧀", "🥛", "🍌", "🥚", "🍇", "🥦", "🍓"];
+
+function rand<T>(a: T[]) { return a[Math.floor(Math.random() * a.length)]; }
 
 function makeChange(): Scenario {
   const price = (1 + Math.random() * 19).toFixed(2);
   const tendered = Math.ceil(parseFloat(price) + 1 + Math.random() * 8);
   const change = +(tendered - parseFloat(price)).toFixed(2);
-  return { prompt: `Toplam: ${price} € · Verilen: ${tendered} € · Para üstü?`, answer: change, unit: "€" };
+  const emoji = rand(PRODUCTS);
+  return { prompt: `${emoji} ${price} € · Verilen: ${tendered} € · Para üstü?`, answer: change, unit: "€", emoji };
 }
 function makePercent(): Scenario {
   const base = 20 + Math.floor(Math.random() * 480);
   const pct = [5, 10, 12, 15, 19, 20, 25, 30][Math.floor(Math.random() * 8)];
   const ans = +((base * pct) / 100).toFixed(2);
-  return { prompt: `${pct}% von ${base} € = ?`, answer: ans, unit: "€" };
+  return { prompt: `${pct}% von ${base} € = ?`, answer: ans, unit: "€", emoji: "🏷️" };
 }
 function makeInterest(): Scenario {
   const k = 100 + Math.floor(Math.random() * 19) * 50;
   const p = [2, 3, 4, 5, 6, 8][Math.floor(Math.random() * 6)];
-  const t = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
-  const ans = +((k * p * t) / 100).toFixed(2);
-  return { prompt: `Kapital ${k} € · ${p}% · ${t} Jahre · Zinsen?`, answer: ans, unit: "€" };
+  const tt = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
+  const ans = +((k * p * tt) / 100).toFixed(2);
+  return { prompt: `Kapital ${k} € · ${p}% · ${tt} Jahre · Zinsen?`, answer: ans, unit: "€", emoji: "💰" };
 }
 
 export default function MarketplaceGame() {
@@ -38,7 +45,7 @@ export default function MarketplaceGame() {
   const [score, setScore] = useState(0);
   const [val, setVal] = useState("");
   const [finished, setFinished] = useState(false);
-  const [last, setLast] = useState<null | "ok" | "bad">(null);
+  const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number | string }>(null);
 
   const scenario: Scenario = useMemo(() => {
     if (classLevel === 3) return makeChange();
@@ -48,31 +55,41 @@ export default function MarketplaceGame() {
 
   function submit() {
     const n = Number(val.replace(",", "."));
-    const correct = Math.abs(n - scenario.answer) < 0.011;
-    if (correct) setScore((s) => s + 20);
-    setLast(correct ? "ok" : "bad");
+    const ok = Math.abs(n - scenario.answer) < 0.011;
+    if (ok) { sfx.correct(); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
+    else { sfx.wrong(); setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` }); }
     setTimeout(() => {
-      setLast(null);
+      setFeedback(null);
       if (round + 1 >= TOTAL) setFinished(true);
       else setRound((r) => r + 1);
       setVal("");
-    }, 600);
+    }, 1100);
   }
 
-  function restart() { setScore(0); setRound(0); setFinished(false); setVal(""); }
+  function restart() { setScore(0); setRound(0); setFinished(false); setVal(""); setFeedback(null); }
 
   return (
     <div className="space-y-4">
-      <GameHeader game="market" score={score} right={<span className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold">{round + 1}/{TOTAL}</span>} />
+      <GameHeader game="market" score={score} right={<span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">{round + 1}/{TOTAL}</span>} />
 
-      <div className="relative rounded-xl border border-border bg-board p-6 shadow-card">
-        <div className="grid sm:grid-cols-[160px_1fr] gap-6 items-center">
-          <div className="text-7xl text-center">🛒</div>
+      <div className="relative rounded-2xl border border-border bg-gradient-to-br from-lime-100 via-amber-50 to-orange-100 p-6 shadow-card overflow-hidden">
+        {/* Stand awning */}
+        <div className="absolute inset-x-0 top-0 h-3 bg-[repeating-linear-gradient(90deg,#ef4444_0_24px,#fef3c7_24px_48px)]" />
+        {/* Floating products */}
+        <div className="absolute -top-2 right-4 text-3xl opacity-30 animate-bounce">🍎</div>
+        <div className="absolute bottom-2 right-12 text-2xl opacity-40">🥕</div>
+        <div className="absolute bottom-4 left-4 text-2xl opacity-40">🧀</div>
+
+        <div className="relative grid sm:grid-cols-[180px_1fr] gap-6 items-center">
+          <div className="text-center">
+            <div className="text-7xl drop-shadow">{scenario.emoji}</div>
+            <Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={56} />
+          </div>
           <div>
-            <p className="text-sm text-muted-foreground mb-1">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
               {classLevel === 3 ? t("g_market_desc", lang) : "Prozentrechnung & Zinsen"}
             </p>
-            <p className="text-lg sm:text-xl font-bold leading-snug">{scenario.prompt}</p>
+            <p className="text-lg sm:text-xl font-extrabold leading-snug text-foreground">{scenario.prompt}</p>
             <div className="mt-4 flex gap-2 items-center">
               <Input
                 type="text"
@@ -80,17 +97,16 @@ export default function MarketplaceGame() {
                 value={val}
                 onChange={(e) => setVal(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
-                className={`text-lg font-bold ${last === "ok" ? "ring-2 ring-success" : last === "bad" ? "ring-2 ring-destructive" : ""}`}
+                className="text-lg font-bold"
                 placeholder={scenario.unit}
+                disabled={!!feedback}
               />
-              <Button onClick={submit}>{t("answer", lang)}</Button>
+              <Button onClick={submit} disabled={!!feedback} size="lg">{t("answer", lang)} ✓</Button>
             </div>
-            {last === "bad" && (
-              <p className="text-xs text-destructive mt-2">{t("wrong", lang)} — {scenario.answer} {scenario.unit}</p>
-            )}
           </div>
         </div>
 
+        <FeedbackBubble feedback={feedback} />
         {finished && <GameEndOverlay score={score} game="market" onRestart={restart} />}
       </div>
     </div>
