@@ -89,18 +89,26 @@ function HomePage() {
               key={g.id}
               to={"/games/$gameId"}
               params={{ gameId: g.id }}
-              className="group rounded-xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-card"
+              className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
             >
-              <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-2xl">
+              <div className={`relative h-28 bg-gradient-to-br ${g.gradient} overflow-hidden`}>
+                <div className="absolute inset-0 opacity-30 text-3xl flex items-center justify-around px-4">
+                  {g.scene.split("").map((s, i) => (
+                    <span key={i} style={{ transform: `translateY(${(i % 2) * 8}px)` }}>{s}</span>
+                  ))}
+                </div>
+                <div className="absolute -right-3 -bottom-4 text-7xl drop-shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                   {g.emoji}
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {t(g.nameKey, lang)}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">{t(g.descKey, lang)}</p>
+                <div className="absolute left-3 top-3 rounded-full bg-white/25 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white tracking-wide">
+                  {classLevel === 3 ? "K3" : "K8"}
                 </div>
+              </div>
+              <div className="p-4">
+                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  {t(g.nameKey, lang)}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">{t(g.descKey, lang)}</p>
               </div>
             </Link>
           ))}
