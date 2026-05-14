@@ -79,10 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Öğretmen yönetimli 3. ve 8. sınıf matematik oyunları (TR/DE)." },
       { name: "author", content: "Matematik Arena" },
       { property: "og:title", content: "Matematik Arena — Mathe-Lernspiele" },
-      { property: "og:description", content: "Lehrergesteuerte Mathe-Spiele für Klasse 3 und Realschule 8." },
+      { property: "og:description", content: "Öğretmen yönetimli 3. ve 8. sınıf matematik oyunları (TR/DE)." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Matematik Arena — Mathe-Lernspiele" },
+      { name: "twitter:description", content: "Öğretmen yönetimli 3. ve 8. sınıf matematik oyunları (TR/DE)." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a16e78fd-cb8e-45ac-bfd2-fc468d87b659/id-preview-004eff88--f33331d6-2ce1-4a20-96ca-d9669032c7ab.lovable.app-1778688507130.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a16e78fd-cb8e-45ac-bfd2-fc468d87b659/id-preview-004eff88--f33331d6-2ce1-4a20-96ca-d9669032c7ab.lovable.app-1778688507130.png" },
     ],
     links: [
       {
