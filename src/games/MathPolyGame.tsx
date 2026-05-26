@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import type { Difficulty } from "@/hooks/use-questions";
 import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { Dice5 } from "lucide-react";
@@ -27,8 +28,9 @@ const BOARD: Tile[] = (() => {
 })();
 
 export default function MathPolyGame() {
-  const { lang } = useApp();
-  const { questions } = useMergedQuestions("mathpoly", "easy");
+  const { lang, unlockThresholds } = useApp();
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const { questions } = useMergedQuestions("mathpoly", difficulty);
   const [pos, setPos] = useState(0);
   const [score, setScore] = useState(0);
   const [turns, setTurns] = useState(10);
@@ -87,6 +89,16 @@ export default function MathPolyGame() {
     setTimeout(() => { setPendingQ(null); setFeedback(null); }, 1100);
   }
 
+  const totalKey = "ma_total_mathpoly";
+  const total = typeof window !== "undefined" ? Number(localStorage.getItem(totalKey) ?? 0) : 0;
+  const unlocked = { easy: true, medium: total >= unlockThresholds.medium, hard: total >= unlockThresholds.hard };
+  useEffect(() => {
+    if (finished && score > 0 && typeof window !== "undefined") {
+      localStorage.setItem(totalKey, String(total + score));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
+
   function restart() {
     setPos(0); setScore(0); setTurns(10); setPendingQ(null); setFinished(false); setFeedback(null);
   }
@@ -98,7 +110,10 @@ export default function MathPolyGame() {
       <GameHeader
         game="mathpoly"
         score={score}
-        right={<span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">🎲 {turns}</span>}
+        right={<>
+          <DifficultyPicker difficulty={difficulty} setDifficulty={setDifficulty} unlocked={unlocked} />
+          <span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">🎲 {turns}</span>
+        </>}
       />
 
       <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
@@ -142,18 +157,16 @@ export default function MathPolyGame() {
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Mascot mood={pendingQ ? "think" : "happy"} size={48} />
-            <h3 className="font-bold text-sm">Macera Tahtası</h3>
+            <h3 className="font-bold text-sm">{t("adventure_board", lang)}</h3>
           </div>
-          <p className="text-xs text-muted-foreground">
-            💎 +15 · ✨ +8 · ⚡ −5 · ? = soru
-          </p>
+          <p className="text-xs text-muted-foreground">{t("board_legend", lang)}</p>
 
           <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 text-white text-5xl shadow-glow ${rolling ? "animate-spin" : ""}`}>
             {diceFaces[diceFace - 1]}
           </div>
 
           <Button onClick={roll} disabled={!!pendingQ || rolling || finished} size="lg">
-            <Dice5 className="h-5 w-5 mr-1" /> {rolling ? "..." : "Zar At"}
+            <Dice5 className="h-5 w-5 mr-1" /> {rolling ? t("rolling", lang) : t("roll_dice", lang)}
           </Button>
 
           {pendingQ && (

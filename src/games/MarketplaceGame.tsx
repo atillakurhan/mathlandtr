@@ -4,7 +4,8 @@ import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
 import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { t } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
+import { toast } from "sonner";
 
 interface Scenario {
   prompt: string;
@@ -17,25 +18,34 @@ const PRODUCTS = ["🍎", "🥕", "🍞", "🧀", "🥛", "🍌", "🥚", "🍇"
 
 function rand<T>(a: T[]) { return a[Math.floor(Math.random() * a.length)]; }
 
-function makeChange(): Scenario {
+function makeChange(lang: Lang): Scenario {
   const price = (1 + Math.random() * 19).toFixed(2);
   const tendered = Math.ceil(parseFloat(price) + 1 + Math.random() * 8);
   const change = +(tendered - parseFloat(price)).toFixed(2);
   const emoji = rand(PRODUCTS);
-  return { prompt: `${emoji} ${price} € · Verilen: ${tendered} € · Para üstü?`, answer: change, unit: "€", emoji };
+  const prompt = lang === "tr"
+    ? `${emoji} ${price} € · Verilen: ${tendered} € · Para üstü?`
+    : `${emoji} ${price} € · Gegeben: ${tendered} € · Wechselgeld?`;
+  return { prompt, answer: change, unit: "€", emoji };
 }
-function makePercent(): Scenario {
+function makePercent(lang: Lang): Scenario {
   const base = 20 + Math.floor(Math.random() * 480);
   const pct = [5, 10, 12, 15, 19, 20, 25, 30][Math.floor(Math.random() * 8)];
   const ans = +((base * pct) / 100).toFixed(2);
-  return { prompt: `${pct}% von ${base} € = ?`, answer: ans, unit: "€", emoji: "🏷️" };
+  const prompt = lang === "tr"
+    ? `${base} €'nin %${pct}'si = ?`
+    : `${pct}% von ${base} € = ?`;
+  return { prompt, answer: ans, unit: "€", emoji: "🏷️" };
 }
-function makeInterest(): Scenario {
+function makeInterest(lang: Lang): Scenario {
   const k = 100 + Math.floor(Math.random() * 19) * 50;
   const p = [2, 3, 4, 5, 6, 8][Math.floor(Math.random() * 6)];
   const tt = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
   const ans = +((k * p * tt) / 100).toFixed(2);
-  return { prompt: `Kapital ${k} € · ${p}% · ${tt} Jahre · Zinsen?`, answer: ans, unit: "€", emoji: "💰" };
+  const prompt = lang === "tr"
+    ? `Anapara: ${k} € · Faiz: %${p} · Süre: ${tt} yıl · Faiz tutarı?`
+    : `Kapital: ${k} € · ${p}% · ${tt} Jahre · Zinsen?`;
+  return { prompt, answer: ans, unit: "€", emoji: "💰" };
 }
 
 export default function MarketplaceGame() {
@@ -48,13 +58,17 @@ export default function MarketplaceGame() {
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number | string }>(null);
 
   const scenario: Scenario = useMemo(() => {
-    if (classLevel === 3) return makeChange();
-    return Math.random() > 0.5 ? makePercent() : makeInterest();
+    if (classLevel === 3) return makeChange(lang);
+    return Math.random() > 0.5 ? makePercent(lang) : makeInterest(lang);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round, classLevel]);
+  }, [round, classLevel, lang]);
 
   function submit() {
     const n = Number(val.replace(",", "."));
+    if (Number.isNaN(n) || val.trim() === "") {
+      toast.error(t("invalid_input", lang));
+      return;
+    }
     const ok = Math.abs(n - scenario.answer) < 0.011;
     if (ok) { sfx.correct(); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
     else { sfx.wrong(); setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` }); }
@@ -87,7 +101,7 @@ export default function MarketplaceGame() {
           </div>
           <div>
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
-              {classLevel === 3 ? t("g_market_desc", lang) : "Prozentrechnung & Zinsen"}
+              {t(classLevel === 3 ? "market_sub_3" : "market_sub_8", lang)}
             </p>
             <p className="text-lg sm:text-xl font-extrabold leading-snug text-foreground">{scenario.prompt}</p>
             <div className="mt-4 flex gap-2 items-center">

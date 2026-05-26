@@ -84,7 +84,7 @@ export default function PyramidGame() {
         <div className="absolute left-2 top-2"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "think") : "think"} size={48} /></div>
 
         <p className="text-center text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3 mt-1">
-          {classLevel === 3 ? "Alttaki sayıları topla, üst kareye yaz" : "Summiere die Nachbarn nach oben"}
+          {t(classLevel === 3 ? "pyramid_hint_3" : "pyramid_hint_8", lang)}
         </p>
 
         <div className="relative flex flex-col-reverse items-center gap-2">

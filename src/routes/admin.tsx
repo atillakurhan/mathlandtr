@@ -69,7 +69,7 @@ function AdminPage() {
     e.preventDefault();
     const num = Number(answer);
     if (!prompt.trim() || Number.isNaN(num)) {
-      toast.error("?");
+      toast.error(t("form_error", lang));
       return;
     }
     const { error } = await supabase.from("questions").insert({

@@ -111,6 +111,21 @@ export const dict: Dict = {
   combo:          { tr: "Üst üste {n}!", de: "{n} in Folge!" },
   sound_on:       { tr: "Ses açık", de: "Ton an" },
   sound_off:      { tr: "Ses kapalı", de: "Ton aus" },
+  // Game-specific UI strings
+  shoot_ball:       { tr: "⚽ Vur!", de: "⚽ Schießen!" },
+  pyramid_hint_3:   { tr: "Alttaki sayıları topla, üst kareye yaz", de: "Addiere die Nachbarn und schreibe das Ergebnis oben hin" },
+  pyramid_hint_8:   { tr: "Alt komşuları topla, üste yaz", de: "Summiere die Nachbarn nach oben" },
+  adventure_board:  { tr: "Macera Tahtası", de: "Abenteuerbrett" },
+  roll_dice:        { tr: "Zar At", de: "Würfeln" },
+  rolling:          { tr: "Atılıyor…", de: "Würfeln…" },
+  touch_zone:       { tr: "👇 Doğru bölgeye dokun", de: "👇 Tippe auf die richtige Zone" },
+  market_sub_3:     { tr: "Para üstü hesabı", de: "Wechselgeld berechnen" },
+  market_sub_8:     { tr: "Yüzde ve faiz hesabı", de: "Prozentrechnung & Zinsen" },
+  trajectory_label: { tr: "f(x) = a·x² + b·x + c", de: "f(x) = a·x² + b·x + c" },
+  goal_target:      { tr: "🎯 Hedef: x ∈ [{x0}, {x1}]", de: "🎯 Ziel: x ∈ [{x0}, {x1}]" },
+  board_legend:     { tr: "💎 +15 · ✨ +8 · ⚡ −5 · ? = soru", de: "💎 +15 · ✨ +8 · ⚡ −5 · ? = Frage" },
+  form_error:       { tr: "Soru metni ve sayısal cevap gereklidir", de: "Aufgabentext und Antwort sind Pflichtfelder" },
+  invalid_input:    { tr: "Lütfen geçerli bir sayı girin", de: "Bitte eine gültige Zahl eingeben" },
 };
 
 export function t(key: keyof typeof dict, lang: Lang, vars?: Record<string, string | number>) {

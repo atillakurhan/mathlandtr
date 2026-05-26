@@ -146,7 +146,7 @@ export default function GoalkeeperGame() {
       <div className="rounded-xl border border-border bg-card p-4 shadow-soft">
         {classLevel === 8 ? (
           <div className="space-y-3">
-            <p className="text-sm font-bold text-primary">f(x) = a·x² + b·x + c — 🎯 Ziel: x ∈ [{target.x0}, {target.x1}]</p>
+            <p className="text-sm font-bold text-primary">{t("trajectory_label", lang)} — {t("goal_target", lang, { x0: target.x0, x1: target.x1 })}</p>
             {([
               ["a", a, setA, -0.2, 0, 0.005],
               ["b", b, setB, 0, 3, 0.05],
@@ -165,12 +165,12 @@ export default function GoalkeeperGame() {
                 <span className="font-mono text-xs tabular-nums w-14 text-right">{(val as number).toFixed(2)}</span>
               </div>
             ))}
-            <Button onClick={shoot} className="w-full" size="lg" disabled={!!feedback || ballAnim !== null}>⚽ Schießen!</Button>
+            <Button onClick={shoot} className="w-full" size="lg" disabled={!!feedback || ballAnim !== null}>{t("shoot_ball", lang)}</Button>
           </div>
         ) : (
           <div className="text-center">
             <p className="text-2xl font-extrabold text-primary">{q3.prompt}</p>
-            <p className="text-xs text-muted-foreground mt-1">👇 Doğru bölgeye dokun</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("touch_zone", lang)}</p>
           </div>
         )}
       </div>

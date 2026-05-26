@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
 import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
+import type { Difficulty } from "@/hooks/use-questions";
 
 export default function RacerGame() {
-  const { lang } = useApp();
-  const { questions } = useMergedQuestions("racer", "easy");
+  const { lang, unlockThresholds } = useApp();
+  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
+  const { questions } = useMergedQuestions("racer", difficulty);
   const [score, setScore] = useState(0);
   const [running, setRunning] = useState(false);
   const [qIdx, setQIdx] = useState(0);
@@ -69,6 +71,16 @@ export default function RacerGame() {
     }, 600);
   }
 
+  const totalKey = "ma_total_racer";
+  const total = typeof window !== "undefined" ? Number(localStorage.getItem(totalKey) ?? 0) : 0;
+  const unlocked = { easy: true, medium: total >= unlockThresholds.medium, hard: total >= unlockThresholds.hard };
+  useEffect(() => {
+    if (finished && score > 0 && typeof window !== "undefined") {
+      localStorage.setItem(totalKey, String(total + score));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
+
   function start() {
     setScore(0); setLives(3); setPos(0); setQIdx(0); setSpeed(0.7); setFinished(false); setRunning(true); setFeedback(null);
   }
@@ -81,6 +93,7 @@ export default function RacerGame() {
         game="racer"
         score={score}
         right={<>
+          <DifficultyPicker difficulty={difficulty} setDifficulty={setDifficulty} unlocked={unlocked} />
           <span className="rounded-md bg-secondary px-2 py-1 text-xs font-semibold">⚡ {speed.toFixed(1)}x</span>
           <span className="rounded-md bg-destructive/15 px-2 py-1 text-xs font-bold text-destructive">{"❤".repeat(Math.max(0, lives))}</span>
         </>}
@@ -112,10 +125,10 @@ export default function RacerGame() {
         {/* Car */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-5xl drop-shadow-lg" style={{ filter: "drop-shadow(0 0 8px rgba(59,130,246,0.5))" }}>🏎️</div>
 
-        {/* Gate (question) */}
+        {/* Gate (question) - starts at top of road and approaches the car */}
         {running && current && (
           <div
-            style={{ bottom: `${10 + pos * 0.7}%` }}
+            style={{ bottom: `${70 - pos * 0.6}%` }}
             className={`absolute left-1/2 -translate-x-1/2 transition-[bottom] ease-linear rounded-xl bg-white/95 border-2 px-4 py-2 shadow-glow ${feedback?.ok ? "border-success ring-2 ring-success" : feedback && !feedback.ok ? "border-destructive ring-2 ring-destructive" : "border-primary/40"}`}
           >
             <p className="font-extrabold text-center text-lg text-primary">{current.prompt}</p>
