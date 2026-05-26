@@ -97,15 +97,22 @@ export function GameEndOverlay({
   game: GameId;
   onRestart: () => void;
 }) {
-  const { lang, playerName, classLevel } = useApp();
+  const { lang, playerName, classLevel, addXP, addCoins } = useApp();
   const g = GAMES.find((x) => x.id === game)!;
   const [submitted, setSubmitted] = useState(false);
+
+  // XP = score ÷ 5 (arrondi), Coins = score ÷ 8
+  const xpEarned = Math.max(5, Math.round(score / 5));
+  const coinsEarned = Math.max(5, Math.round(score / 8));
+
   useEffect(() => {
     if (submitted) return;
-    submitScore(playerName || "Anonim", game, classLevel, score);
+    submitScore(playerName || "Anonym", game, classLevel, score);
+    addXP(xpEarned);
+    addCoins(coinsEarned);
     sfx.win();
     setSubmitted(true);
-  }, [submitted, playerName, game, classLevel, score]);
+  }, [submitted, playerName, game, classLevel, score, xpEarned, coinsEarned, addXP, addCoins]);
 
   const stars = score > 150 ? 3 : score > 60 ? 2 : score > 0 ? 1 : 0;
 
@@ -122,6 +129,10 @@ export function GameEndOverlay({
         </div>
         <p className="text-5xl font-extrabold text-primary tabular-nums">{score}</p>
         <p className="text-sm text-muted-foreground">{t("score", lang)}</p>
+        <div className="flex justify-center gap-3 mt-1 text-xs font-bold">
+          <span className="text-violet-600">+{xpEarned} XP</span>
+          <span className="text-amber-600">+{coinsEarned} 🪙</span>
+        </div>
         <p className="text-sm font-semibold text-success mt-2">{t(stars >= 2 ? "cheer_great" : "cheer_keep", lang)}</p>
         <div className="mt-5 flex gap-2 justify-center">
           <Button onClick={onRestart}><RotateCcw className="h-4 w-4 mr-1" />{t("play_again", lang)}</Button>

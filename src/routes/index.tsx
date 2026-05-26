@@ -1,18 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
+import { useAuth } from "@/hooks/use-auth";
 import { GAMES, t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Sparkles } from "lucide-react";
+import { Trophy, Sparkles, Zap, Flame } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
-  const { lang, classLevel, playerName, setPlayerName } = useApp();
+  const { lang, classLevel, playerName, setPlayerName, xp, coins, streakDays, companionEmoji } = useApp();
+  const { user } = useAuth();
   const [nameDraft, setNameDraft] = useState(playerName);
   const [topScores, setTopScores] = useState<{ player_name: string; total: number }[]>([]);
 
@@ -54,26 +56,53 @@ function HomePage() {
             {t("app_tag", lang)}
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Input
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              placeholder={t("enter_name", lang)}
-              className="max-w-xs bg-white/95 text-foreground placeholder:text-muted-foreground"
-              maxLength={40}
-            />
-            <Button
-              onClick={() => setPlayerName(nameDraft.trim())}
-              variant="secondary"
-              className="font-semibold"
-            >
-              {t("save", lang)}
-            </Button>
+          {/* Gamification stats for logged-in users */}
+          {user && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+                <span className="text-xl">{companionEmoji}</span>
+              </span>
+              {streakDays > 0 && (
+                <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+                  <Flame className="h-4 w-4" /> {streakDays} Tage
+                </span>
+              )}
+              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+                <Zap className="h-4 w-4" /> {xp} XP
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
+                🪙 {coins}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {!user && (
+              <>
+                <Input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  placeholder={t("enter_name", lang)}
+                  className="max-w-xs bg-white/95 text-foreground placeholder:text-muted-foreground"
+                  maxLength={40}
+                />
+                <Button onClick={() => setPlayerName(nameDraft.trim())} variant="secondary" className="font-semibold">
+                  {t("save", lang)}
+                </Button>
+              </>
+            )}
             <Link to="/leaderboard">
               <Button variant="outline" className="border-white/40 bg-white/10 text-primary-foreground hover:bg-white/20">
                 <Trophy className="mr-1 h-4 w-4" /> {t("leaderboard", lang)}
               </Button>
             </Link>
+            {!user && (
+              <Link to="/login">
+                <Button className="bg-white text-primary hover:bg-white/90 font-bold">
+                  Anmelden / Registrieren
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
