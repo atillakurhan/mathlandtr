@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Plus, Lock } from "lucide-react";
+import { Trash2, Plus, Lock, BarChart2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -44,6 +44,8 @@ function AdminPage() {
   const [answer, setAnswer] = useState("");
   const [items, setItems] = useState<Q[]>([]);
   const [thresholds, setThresholds] = useState(unlockThresholds);
+  const [analytics, setAnalytics] = useState<{ player_name: string; total: number; xp: number; coins: number }[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => setThresholds(unlockThresholds), [unlockThresholds]);
 
@@ -102,6 +104,46 @@ function AdminPage() {
       .upsert({ key: "unlock_thresholds", value: thresholds });
     if (error) toast.error(error.message);
     else toast.success("✓");
+  }
+
+  async function loadAnalytics() {
+    setAnalyticsLoading(true);
+    const { data: scores } = await supabase
+      .from("scores")
+      .select("player_name, score, user_id")
+      .eq("class_level", classLevel)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (!scores) { setAnalyticsLoading(false); return; }
+
+    const map = new Map<string, { total: number; userId: string | null }>();
+    for (const s of scores) {
+      const ex = map.get(s.player_name);
+      if (ex) ex.total += s.score;
+      else map.set(s.player_name, { total: s.score, userId: s.user_id ?? null });
+    }
+
+    const userIds = [...map.values()].map((v) => v.userId).filter(Boolean) as string[];
+    const walletMap = new Map<string, { xp: number; coins: number }>();
+    if (userIds.length > 0) {
+      const { data: wallets } = await supabase
+        .from("wallets").select("user_id,xp,coins").in("user_id", userIds);
+      for (const w of wallets ?? []) walletMap.set(w.user_id, { xp: w.xp, coins: w.coins });
+    }
+
+    const arr = [...map.entries()]
+      .map(([player_name, { total, userId }]) => ({
+        player_name,
+        total,
+        xp: userId ? (walletMap.get(userId)?.xp ?? 0) : 0,
+        coins: userId ? (walletMap.get(userId)?.coins ?? 0) : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 20);
+
+    setAnalytics(arr);
+    setAnalyticsLoading(false);
   }
 
   async function setActiveClass(level: 3 | 8) {
@@ -243,6 +285,48 @@ function AdminPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* Student analytics */}
+      <section className="rounded-xl border border-border bg-card p-5 shadow-soft">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold flex items-center gap-2">
+            <BarChart2 className="h-4 w-4" /> {t("student_analytics", lang)}
+          </h2>
+          <Button size="sm" variant="outline" onClick={loadAnalytics} disabled={analyticsLoading}>
+            {analyticsLoading ? "…" : t("top_students", lang)}
+          </Button>
+        </div>
+        {analytics.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="pb-2 w-8">{t("rank", lang)}</th>
+                  <th className="pb-2">{t("player", lang)}</th>
+                  <th className="pb-2 text-right">{t("total_score", lang)}</th>
+                  <th className="pb-2 text-right">XP</th>
+                  <th className="pb-2 text-right">🪙</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {analytics.map((row, i) => (
+                  <tr key={row.player_name} className="py-1">
+                    <td className="py-2 font-mono text-muted-foreground">{i + 1}.</td>
+                    <td className="py-2 font-medium truncate max-w-[160px]">{row.player_name}</td>
+                    <td className="py-2 text-right font-bold text-primary tabular-nums">{row.total}</td>
+                    <td className="py-2 text-right text-violet-600 tabular-nums text-xs">{row.xp > 0 ? row.xp : "—"}</td>
+                    <td className="py-2 text-right text-amber-600 tabular-nums text-xs">{row.coins > 0 ? row.coins : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {analyticsLoading ? "…" : t("no_scores", lang)}
+          </p>
+        )}
       </section>
     </div>
   );

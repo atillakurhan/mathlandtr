@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useQuestions, submitScore, type Difficulty } from "@/hooks/use-questions";
+import { useStreak } from "@/hooks/use-streak";
 import { generateFallback, type FQ } from "@/lib/fallback-questions";
 import { t, GAMES, pickCheer, type GameId } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -97,22 +98,30 @@ export function GameEndOverlay({
   game: GameId;
   onRestart: () => void;
 }) {
-  const { lang, playerName, classLevel, addXP, addCoins } = useApp();
+  const { lang, playerName, classLevel, addXP, addCoins, refreshStreak } = useApp();
+  const { recordActivity } = useStreak();
   const g = GAMES.find((x) => x.id === game)!;
   const [submitted, setSubmitted] = useState(false);
+  const [streakBonus, setStreakBonus] = useState<{ coins: number; days: number } | null>(null);
 
-  // XP = score ÷ 5 (arrondi), Coins = score ÷ 8
   const xpEarned = Math.max(5, Math.round(score / 5));
   const coinsEarned = Math.max(5, Math.round(score / 8));
 
   useEffect(() => {
     if (submitted) return;
+    setSubmitted(true);
     submitScore(playerName || "Anonym", game, classLevel, score);
     addXP(xpEarned);
     addCoins(coinsEarned);
     sfx.win();
-    setSubmitted(true);
-  }, [submitted, playerName, game, classLevel, score, xpEarned, coinsEarned, addXP, addCoins]);
+    recordActivity().then(({ coinBonus, newStreak }) => {
+      refreshStreak(newStreak);
+      if (coinBonus > 0) {
+        addCoins(coinBonus);
+        setStreakBonus({ coins: coinBonus, days: newStreak });
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stars = score > 150 ? 3 : score > 60 ? 2 : score > 0 ? 1 : 0;
 
@@ -133,6 +142,11 @@ export function GameEndOverlay({
           <span className="text-violet-600">+{xpEarned} XP</span>
           <span className="text-amber-600">+{coinsEarned} 🪙</span>
         </div>
+        {streakBonus && (
+          <div className="mt-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 px-3 py-1.5 text-sm font-bold text-orange-700 dark:text-orange-300">
+            {t("streak_bonus", lang, { n: streakBonus.days, coins: streakBonus.coins })}
+          </div>
+        )}
         <p className="text-sm font-semibold text-success mt-2">{t(stars >= 2 ? "cheer_great" : "cheer_keep", lang)}</p>
         <div className="mt-5 flex gap-2 justify-center">
           <Button onClick={onRestart}><RotateCcw className="h-4 w-4 mr-1" />{t("play_again", lang)}</Button>

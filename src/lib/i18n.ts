@@ -104,6 +104,12 @@ export const dict: Dict = {
   slot_outfit:    { tr: "Kıyafet",           de: "Outfit" },
   slot_accessory: { tr: "Aksesuar",          de: "Accessoire" },
   unlock_with_streak:{ tr: "{n} gün serisinde açılır", de: "Freischalten bei {n}-Tage-Streak" },
+  get_free:       { tr: "Al",                de: "Holen" },
+  buy_item:       { tr: "Satın Al",          de: "Kaufen" },
+  gratis:         { tr: "Ücretsiz",          de: "Gratis" },
+  equipped:       { tr: "Giyildi ✓",         de: "Ausgerüstet ✓" },
+  equip:          { tr: "Giyin",             de: "Anlegen" },
+  streak_bonus:   { tr: "🔥 {n} Günlük Seri! +{coins} 🪙 bonus!", de: "🔥 {n}-Tage-Streak! +{coins} 🪙 Bonus!" },
   // ── Classroom ───────────────────────────────────────────────────────────────
   classroom:      { tr: "Sınıfım",           de: "Meine Klasse" },
   create_class:   { tr: "Sınıf Oluştur",     de: "Klasse erstellen" },
@@ -168,6 +174,11 @@ export const dict: Dict = {
   board_legend:     { tr: "💎 +15 · ✨ +8 · ⚡ −5 · ? = soru", de: "💎 +15 · ✨ +8 · ⚡ −5 · ? = Frage" },
   form_error:       { tr: "Soru metni ve sayısal cevap gereklidir", de: "Aufgabentext und Antwort sind Pflichtfelder" },
   invalid_input:    { tr: "Lütfen geçerli bir sayı girin", de: "Bitte eine gültige Zahl eingeben" },
+  // ── Admin analytics ─────────────────────────────────────────────────────────
+  student_analytics:{ tr: "Öğrenci Analitik", de: "Schüler-Analytik" },
+  top_students:     { tr: "En İyi Öğrenciler", de: "Top-Schüler" },
+  rank:             { tr: "Sıra",             de: "Rang" },
+  player:           { tr: "Oyuncu",           de: "Spieler" },
 };
 
 export function t(key: keyof typeof dict, lang: Lang, vars?: Record<string, string | number>) {

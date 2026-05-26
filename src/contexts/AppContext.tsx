@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Lang, ClassLevel } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +17,7 @@ interface AppState {
   companionEmoji: string;
   addXP: (n: number) => void;
   addCoins: (n: number) => void;
+  refreshStreak: (newDays?: number) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -149,10 +150,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshStreak = useCallback((newDays?: number) => {
+    if (newDays !== undefined) { setStreakDays(newDays); return; }
+    if (!authUserId) return;
+    supabase.from("streaks").select("current_days").eq("user_id", authUserId).single()
+      .then(({ data }) => { if (data) setStreakDays(data.current_days); });
+  }, [authUserId]);
+
   return (
     <AppContext.Provider value={{
       lang, setLang, classLevel, setClassLevel, playerName, setPlayerName,
-      unlockThresholds, xp, coins, streakDays, companionEmoji, addXP, addCoins,
+      unlockThresholds, xp, coins, streakDays, companionEmoji, addXP, addCoins, refreshStreak,
     }}>
       {children}
     </AppContext.Provider>
