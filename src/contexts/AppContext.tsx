@@ -15,6 +15,7 @@ interface AppState {
   coins: number;
   streakDays: number;
   companionEmoji: string;
+  companionCharId: string;
   addXP: (n: number) => void;
   addCoins: (n: number) => void;
   refreshStreak: (newDays?: number) => void;
@@ -31,6 +32,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [coins, setCoins] = useState(100);
   const [streakDays, setStreakDays] = useState(0);
   const [companionEmoji, setCompanionEmoji] = useState("🥚");
+  const [companionCharId, setCompanionCharId] = useState("yumurtacan");
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   // Hydrate from localStorage (guest)
@@ -77,6 +79,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!cancelled && data) {
           const char = data as { character_id: string; characters: { emoji: string } | null };
           if (char.characters?.emoji) setCompanionEmoji(char.characters.emoji);
+          setCompanionCharId(char.character_id);
         }
       });
 
@@ -160,7 +163,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       lang, setLang, classLevel, setClassLevel, playerName, setPlayerName,
-      unlockThresholds, xp, coins, streakDays, companionEmoji, addXP, addCoins, refreshStreak,
+      unlockThresholds, xp, coins, streakDays, companionEmoji, companionCharId, addXP, addCoins, refreshStreak,
     }}>
       {children}
     </AppContext.Provider>

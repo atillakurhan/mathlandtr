@@ -93,18 +93,22 @@ export function GameEndOverlay({
   score,
   game,
   onRestart,
+  correctCount = 0,
 }: {
   score: number;
   game: GameId;
   onRestart: () => void;
+  correctCount?: number;
 }) {
-  const { lang, playerName, classLevel, addXP, addCoins, refreshStreak } = useApp();
+  const { lang, playerName, classLevel, addXP, addCoins, refreshStreak, companionCharId, companionEmoji } = useApp();
   const { recordActivity } = useStreak();
   const g = GAMES.find((x) => x.id === game)!;
   const [submitted, setSubmitted] = useState(false);
   const [streakBonus, setStreakBonus] = useState<{ coins: number; days: number } | null>(null);
 
-  const xpEarned = Math.max(5, Math.round(score / 5));
+  // Companion ability bonuses
+  const abilityXpBonus = companionCharId === "abuzeriye" ? correctCount * 2 : 0;
+  const xpEarned = Math.max(5, Math.round(score / 5)) + abilityXpBonus;
   const coinsEarned = Math.max(5, Math.round(score / 8));
 
   useEffect(() => {
@@ -129,7 +133,10 @@ export function GameEndOverlay({
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/85 backdrop-blur-sm rounded-xl">
       <Confetti show={stars > 0} count={36} />
       <div className="rounded-2xl bg-card p-8 text-center shadow-card border border-border max-w-sm w-[90%] animate-in fade-in zoom-in duration-300">
-        <div className="text-6xl mb-2 animate-bounce">{g.emoji}</div>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="text-5xl animate-bounce">{companionEmoji}</span>
+          <span className="text-5xl">{g.emoji}</span>
+        </div>
         <h3 className="text-2xl font-extrabold">{t("finished", lang)}</h3>
         <div className="my-3 flex justify-center gap-1 text-3xl">
           {[1, 2, 3].map((i) => (
@@ -139,7 +146,7 @@ export function GameEndOverlay({
         <p className="text-5xl font-extrabold text-primary tabular-nums">{score}</p>
         <p className="text-sm text-muted-foreground">{t("score", lang)}</p>
         <div className="flex justify-center gap-3 mt-1 text-xs font-bold">
-          <span className="text-violet-600">+{xpEarned} XP</span>
+          <span className="text-violet-600">+{xpEarned} XP{abilityXpBonus > 0 && <span className="opacity-70"> (+{abilityXpBonus} {companionEmoji})</span>}</span>
           <span className="text-amber-600">+{coinsEarned} 🪙</span>
         </div>
         {streakBonus && (
@@ -195,13 +202,13 @@ export function GameHeader({
   );
 }
 
-// Floating reaction bubble — shows "+10", cheer text, mascot mood briefly
+// Floating reaction bubble — shows companion emoji + cheer text
 export function FeedbackBubble({
   feedback,
 }: {
   feedback: null | { ok: boolean; delta?: number; correctValue?: number | string };
 }) {
-  const { lang } = useApp();
+  const { lang, companionEmoji } = useApp();
   if (!feedback) return null;
   const cheer = pickCheer(feedback.ok);
   return (
@@ -209,7 +216,7 @@ export function FeedbackBubble({
       <div className={`flex flex-col items-center gap-1 rounded-2xl px-4 py-2 shadow-glow border-2 ${
         feedback.ok ? "bg-success text-success-foreground border-white/60" : "bg-destructive text-destructive-foreground border-white/60"
       }`}>
-        <Mascot mood={feedback.ok ? "cheer" : "sad"} size={44} />
+        <span className={`text-5xl ${feedback.ok ? "animate-bounce" : "animate-pulse"}`}>{companionEmoji}</span>
         <p className="text-sm font-extrabold">{t(cheer, lang)}</p>
         {feedback.ok && typeof feedback.delta === "number" && (
           <p className="text-xs font-bold">+{feedback.delta}</p>

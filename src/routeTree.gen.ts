@@ -9,30 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as LeaderboardRouteImport } from './routes/leaderboard'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as ClassroomRouteImport } from './routes/classroom'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaderboardRoute = LeaderboardRouteImport.update({
-  id: '/leaderboard',
-  path: '/leaderboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
   path: '/wardrobe',
@@ -43,9 +28,24 @@ const ShopRoute = ShopRouteImport.update({
   path: '/shop',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardRoute = LeaderboardRouteImport.update({
+  id: '/leaderboard',
+  path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClassroomRoute = ClassroomRouteImport.update({
   id: '/classroom',
   path: '/classroom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -62,9 +62,9 @@ const GamesGameIdRoute = GamesGameIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/classroom': typeof ClassroomRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
-  '/classroom': typeof ClassroomRoute
   '/shop': typeof ShopRoute
   '/wardrobe': typeof WardrobeRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -72,9 +72,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/classroom': typeof ClassroomRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
-  '/classroom': typeof ClassroomRoute
   '/shop': typeof ShopRoute
   '/wardrobe': typeof WardrobeRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -83,27 +83,52 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/classroom': typeof ClassroomRoute
   '/leaderboard': typeof LeaderboardRoute
   '/login': typeof LoginRoute
-  '/classroom': typeof ClassroomRoute
   '/shop': typeof ShopRoute
   '/wardrobe': typeof WardrobeRoute
   '/games/$gameId': typeof GamesGameIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/leaderboard' | '/login' | '/classroom' | '/shop' | '/wardrobe' | '/games/$gameId'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/classroom'
+    | '/leaderboard'
+    | '/login'
+    | '/shop'
+    | '/wardrobe'
+    | '/games/$gameId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/leaderboard' | '/login' | '/classroom' | '/shop' | '/wardrobe' | '/games/$gameId'
-  id: '__root__' | '/' | '/admin' | '/leaderboard' | '/login' | '/classroom' | '/shop' | '/wardrobe' | '/games/$gameId'
+  to:
+    | '/'
+    | '/admin'
+    | '/classroom'
+    | '/leaderboard'
+    | '/login'
+    | '/shop'
+    | '/wardrobe'
+    | '/games/$gameId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/classroom'
+    | '/leaderboard'
+    | '/login'
+    | '/shop'
+    | '/wardrobe'
+    | '/games/$gameId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ClassroomRoute: typeof ClassroomRoute
   LeaderboardRoute: typeof LeaderboardRoute
   LoginRoute: typeof LoginRoute
-  ClassroomRoute: typeof ClassroomRoute
   ShopRoute: typeof ShopRoute
   WardrobeRoute: typeof WardrobeRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
@@ -111,6 +136,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wardrobe': {
+      id: '/wardrobe'
+      path: '/wardrobe'
+      fullPath: '/wardrobe'
+      preLoaderRoute: typeof WardrobeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -125,13 +164,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/classroom': {
       id: '/classroom'
       path: '/classroom'
@@ -139,18 +171,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClassroomRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shop': {
-      id: '/shop'
-      path: '/shop'
-      fullPath: '/shop'
-      preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/wardrobe': {
-      id: '/wardrobe'
-      path: '/wardrobe'
-      fullPath: '/wardrobe'
-      preLoaderRoute: typeof WardrobeRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -173,9 +198,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ClassroomRoute: ClassroomRoute,
   LeaderboardRoute: LeaderboardRoute,
   LoginRoute: LoginRoute,
-  ClassroomRoute: ClassroomRoute,
   ShopRoute: ShopRoute,
   WardrobeRoute: WardrobeRoute,
   GamesGameIdRoute: GamesGameIdRoute,
