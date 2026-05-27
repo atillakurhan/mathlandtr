@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
-import { Mascot } from "@/components/Mascot";
+import { GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { t } from "@/lib/i18n";
 
 export default function GoalkeeperGame() {
-  const { lang, classLevel } = useApp();
+  const { lang, classLevel, companionEmoji } = useApp();
+  const { noPenalty, giveHint } = useCompanionAbility();
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [round, setRound] = useState(0);
   const TOTAL = 8;
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number | string }>(null);
+  const [hintShown, setHintShown] = useState(false);
 
   const [a, setA] = useState(-0.05);
   const [b, setB] = useState(1);
@@ -22,6 +23,9 @@ export default function GoalkeeperGame() {
   const [target, setTarget] = useState({ x0: 60, x1: 75 });
   const [q3, setQ3] = useState({ prompt: "", answer: 0, zones: [{ x0: 25, x1: 40, val: 0 }, { x0: 55, x1: 70, val: 0 }] });
   const [ballAnim, setBallAnim] = useState<number | null>(null); // 0..1 progress
+
+  // noPenalty: goalkeeper doesn't have score deductions, skip
+  void noPenalty;
 
   function nextRound() {
     if (classLevel === 8) {
@@ -76,7 +80,18 @@ export default function GoalkeeperGame() {
     const z = q3.zones[zoneIdx];
     const ok = z.val === q3.answer;
     if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 15); setFeedback({ ok: true, delta: 15 }); }
-    else { sfx.wrong(); setFeedback({ ok: false, correctValue: q3.answer }); }
+    else {
+      if (giveHint && !hintShown) {
+        sfx.wrong();
+        setHintShown(true);
+        setFeedback({ ok: false, correctValue: q3.answer });
+        setTimeout(() => { setFeedback(null); }, 1100);
+        return;
+      }
+      setHintShown(false);
+      sfx.wrong();
+      setFeedback({ ok: false, correctValue: q3.answer });
+    }
     setTimeout(() => { setFeedback(null); advance(); }, 1100);
   }
 
@@ -84,7 +99,7 @@ export default function GoalkeeperGame() {
     if (round + 1 >= TOTAL) setFinished(true);
     else setRound((r) => r + 1);
   }
-  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setFeedback(null); }
+  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setFeedback(null); setHintShown(false); }
 
   const path = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${50 - p.y * 1.5}`).join(" ");
 
@@ -138,7 +153,11 @@ export default function GoalkeeperGame() {
         {/* Goal frame on right */}
         <div className="absolute right-2 bottom-[18%] text-5xl">🥅</div>
         <div className="absolute left-1 bottom-[18%] text-3xl">⚽</div>
-        <div className="absolute left-2 top-2"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={50} /></div>
+
+        {/* Companion display */}
+        <div className="absolute left-2 top-2 flex flex-col items-center z-10">
+          <span className={`text-4xl drop-shadow-lg ${feedback ? (feedback.ok ? "animate-bounce" : "animate-pulse") : "animate-[pulse_4s_ease-in-out_infinite]"}`}>{companionEmoji}</span>
+        </div>
 
         <FeedbackBubble feedback={feedback} />
         {finished && <GameEndOverlay score={score} game="goalie" onRestart={restart} correctCount={correctCount} />}

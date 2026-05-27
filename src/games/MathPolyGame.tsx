@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
 import type { Difficulty } from "@/hooks/use-questions";
-import { Mascot } from "@/components/Mascot";
 import { Button } from "@/components/ui/button";
 import { Dice5 } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -28,7 +27,8 @@ const BOARD: Tile[] = (() => {
 })();
 
 export default function MathPolyGame() {
-  const { lang, unlockThresholds } = useApp();
+  const { lang, unlockThresholds, companionEmoji } = useApp();
+  const { noPenalty, giveHint } = useCompanionAbility();
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("mathpoly", difficulty);
   const [pos, setPos] = useState(0);
@@ -40,6 +40,7 @@ export default function MathPolyGame() {
   const [diceFace, setDiceFace] = useState(1);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number }>(null);
+  const [hintShown, setHintShown] = useState(false);
 
   const tiles = BOARD;
   const positions = useMemo(() => {
@@ -85,8 +86,31 @@ export default function MathPolyGame() {
   function answerQ(val: number) {
     if (!pendingQ) return;
     const ok = val === pendingQ.answer;
-    if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
-    else { sfx.wrong(); setScore((s) => Math.max(0, s - 5)); setFeedback({ ok: false, correctValue: pendingQ.answer }); }
+    if (ok) {
+      sfx.correct();
+      setCorrectCount((c) => c + 1);
+      setScore((s) => s + 20);
+      setFeedback({ ok: true, delta: 20 });
+    } else {
+      if (giveHint && !hintShown) {
+        if (!noPenalty) setScore((s) => Math.max(0, s - 5));
+        sfx.wrong();
+        setHintShown(true);
+        setFeedback({ ok: false, correctValue: pendingQ.answer });
+        // DON'T call setTimeout to clear pendingQ — keep the question
+        setTimeout(() => setFeedback(null), 1500);
+        return;
+      }
+      setHintShown(false);
+      if (!noPenalty) {
+        sfx.wrong();
+        setScore((s) => Math.max(0, s - 5));
+        setFeedback({ ok: false, correctValue: pendingQ.answer });
+      } else {
+        sfx.wrong();
+        setFeedback({ ok: false, correctValue: pendingQ.answer });
+      }
+    }
     setTimeout(() => { setPendingQ(null); setFeedback(null); }, 1100);
   }
 
@@ -102,6 +126,7 @@ export default function MathPolyGame() {
 
   function restart() {
     setPos(0); setScore(0); setCorrectCount(0); setTurns(10); setPendingQ(null); setFinished(false); setFeedback(null);
+    setHintShown(false);
   }
 
   const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
@@ -144,7 +169,7 @@ export default function MathPolyGame() {
                 <div className={`relative h-11 w-11 sm:h-12 sm:w-12 rounded-lg ${color} flex items-center justify-center text-base font-bold shadow-soft border-2 border-white/40 ${pos === i ? "ring-2 ring-foreground scale-110" : ""}`}>
                   {label}
                   {pos === i && (
-                    <div className="absolute -top-4 -right-2 text-2xl drop-shadow animate-bounce">🧙</div>
+                    <div className="absolute -top-4 -right-2 text-2xl drop-shadow animate-bounce">{companionEmoji}</div>
                   )}
                 </div>
               </div>
@@ -157,7 +182,7 @@ export default function MathPolyGame() {
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <Mascot mood={pendingQ ? "think" : "happy"} size={48} />
+            <span className={`text-4xl ${pendingQ ? "animate-pulse" : "animate-[pulse_3s_ease-in-out_infinite]"}`}>{companionEmoji}</span>
             <h3 className="font-bold text-sm">{t("adventure_board", lang)}</h3>
           </div>
           <p className="text-xs text-muted-foreground">{t("board_legend", lang)}</p>
@@ -173,6 +198,11 @@ export default function MathPolyGame() {
           {pendingQ && (
             <div className="rounded-xl bg-secondary p-3 mt-2 space-y-2 border-2 border-primary/30 animate-in slide-in-from-bottom">
               <p className="text-base font-extrabold text-primary text-center">{pendingQ.prompt}</p>
+              {hintShown && (
+                <p className="text-xs text-yellow-700 font-bold text-center bg-yellow-50 border border-yellow-300 rounded px-2 py-1">
+                  💡 {t("the_answer_was", lang)}: {pendingQ.answer}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 {(pendingQ.choices ?? [pendingQ.answer, pendingQ.answer + 1, pendingQ.answer - 1, pendingQ.answer + 3]).map((c) => (
                   <Button key={c} variant="outline" className="font-bold" onClick={() => answerQ(c)} disabled={!!feedback}>{c}</Button>

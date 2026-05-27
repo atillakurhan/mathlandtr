@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
-import { Mascot } from "@/components/Mascot";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
 import type { Difficulty } from "@/hooks/use-questions";
 
 export default function RacerGame() {
-  const { lang, unlockThresholds } = useApp();
+  const { lang, unlockThresholds, companionEmoji } = useApp();
+  const { noPenalty, giveHint } = useCompanionAbility();
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("racer", difficulty);
   const [score, setScore] = useState(0);
@@ -20,6 +20,7 @@ export default function RacerGame() {
   const [lives, setLives] = useState(3);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number }>(null);
   const [stripeOffset, setStripeOffset] = useState(0);
+  const [hintShown, setHintShown] = useState(false);
 
   const current = questions[qIdx % Math.max(questions.length, 1)];
 
@@ -58,6 +59,15 @@ export default function RacerGame() {
       setSpeed((s) => Math.min(2.2, s + 0.05));
       setFeedback({ ok: true, delta: 12 });
     } else {
+      if (giveHint && !hintShown) {
+        sfx.wrong();
+        setHintShown(true);
+        setPos(0);
+        setFeedback({ ok: false, correctValue: current.answer });
+        setTimeout(() => setFeedback(null), 1200);
+        return;
+      }
+      setHintShown(false);
       sfx.wrong();
       setLives((l) => {
         const nl = l - 1;
@@ -85,9 +95,13 @@ export default function RacerGame() {
 
   function start() {
     setScore(0); setCorrectCount(0); setLives(3); setPos(0); setQIdx(0); setSpeed(0.7); setFinished(false); setRunning(true); setFeedback(null);
+    setHintShown(false);
   }
 
   const choices = current?.choices ?? (current ? [current.answer, current.answer + 2, current.answer - 1, current.answer + 5] : []);
+
+  // noPenalty is not relevant for racer (no score deduction on wrong), but kept for consistency
+  void noPenalty;
 
   return (
     <div className="space-y-4">
@@ -121,8 +135,10 @@ export default function RacerGame() {
           }}
         />
 
-        {/* Mascot pit-side */}
-        <div className="absolute left-2 bottom-2 z-10"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={50} /></div>
+        {/* Companion pit-side */}
+        <div className="absolute left-2 bottom-2 z-10 flex flex-col items-center gap-0.5">
+          <span className={`text-3xl drop-shadow ${feedback ? (feedback.ok ? "animate-bounce" : "animate-pulse") : ""}`}>{companionEmoji}</span>
+        </div>
 
         {/* Car */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-5xl drop-shadow-lg" style={{ filter: "drop-shadow(0 0 8px rgba(59,130,246,0.5))" }}>🏎️</div>
@@ -136,6 +152,9 @@ export default function RacerGame() {
             <p className="font-extrabold text-center text-lg text-primary">{current.prompt}</p>
           </div>
         )}
+
+        {/* Hint overlay */}
+        {hintShown && <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-sm font-bold text-yellow-800 shadow-lg">💡 {t("the_answer_was", lang)}: {current?.answer}</div>}
 
         <FeedbackBubble feedback={feedback} />
 

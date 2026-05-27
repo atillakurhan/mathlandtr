@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
-import { Mascot } from "@/components/Mascot";
+import { GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t, type Lang } from "@/lib/i18n";
@@ -49,7 +48,8 @@ function makeInterest(lang: Lang): Scenario {
 }
 
 export default function MarketplaceGame() {
-  const { classLevel, lang } = useApp();
+  const { classLevel, lang, companionEmoji } = useApp();
+  const { noPenalty, giveHint } = useCompanionAbility();
   const TOTAL = 8;
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
@@ -57,6 +57,10 @@ export default function MarketplaceGame() {
   const [val, setVal] = useState("");
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number | string }>(null);
+  const [hintShown, setHintShown] = useState(false);
+
+  // noPenalty: marketplace has no score deduction on wrong, skip
+  void noPenalty;
 
   const scenario: Scenario = useMemo(() => {
     if (classLevel === 3) return makeChange(lang);
@@ -72,7 +76,18 @@ export default function MarketplaceGame() {
     }
     const ok = Math.abs(n - scenario.answer) < 0.011;
     if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
-    else { sfx.wrong(); setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` }); }
+    else {
+      if (giveHint && !hintShown) {
+        sfx.wrong();
+        setHintShown(true);
+        setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` });
+        setTimeout(() => { setFeedback(null); setVal(""); }, 1500);
+        return; // don't advance round
+      }
+      setHintShown(false);
+      sfx.wrong();
+      setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` });
+    }
     setTimeout(() => {
       setFeedback(null);
       if (round + 1 >= TOTAL) setFinished(true);
@@ -81,7 +96,7 @@ export default function MarketplaceGame() {
     }, 1100);
   }
 
-  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setVal(""); setFeedback(null); }
+  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setVal(""); setFeedback(null); setHintShown(false); }
 
   return (
     <div className="space-y-4">
@@ -98,13 +113,18 @@ export default function MarketplaceGame() {
         <div className="relative grid sm:grid-cols-[180px_1fr] gap-6 items-center">
           <div className="text-center">
             <div className="text-7xl drop-shadow">{scenario.emoji}</div>
-            <Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={56} />
+            <span className={`text-6xl drop-shadow-lg ${feedback ? (feedback.ok ? "animate-bounce" : "animate-pulse") : "animate-[pulse_3s_ease-in-out_infinite]"}`}>{companionEmoji}</span>
           </div>
           <div>
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
               {t(classLevel === 3 ? "market_sub_3" : "market_sub_8", lang)}
             </p>
             <p className="text-lg sm:text-xl font-extrabold leading-snug text-foreground">{scenario.prompt}</p>
+            {hintShown && (
+              <p className="text-xs text-yellow-700 font-bold mt-2 bg-yellow-50 border border-yellow-300 rounded px-2 py-1">
+                💡 {t("the_answer_was", lang)}: {scenario.answer} {scenario.unit}
+              </p>
+            )}
             <div className="mt-4 flex gap-2 items-center">
               <Input
                 type="text"

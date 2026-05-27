@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, type MergedQ } from "./GameShell";
-import { Mascot } from "@/components/Mascot";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility, type MergedQ } from "./GameShell";
 import { t } from "@/lib/i18n";
 import type { Difficulty } from "@/hooks/use-questions";
 
@@ -19,7 +18,8 @@ interface Balloon {
 }
 
 export default function ArcheryGame() {
-  const { lang, unlockThresholds } = useApp();
+  const { lang, unlockThresholds, companionEmoji } = useApp();
+  const { noPenalty, extraTime, giveHint } = useCompanionAbility();
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("archery", difficulty);
   const [score, setScore] = useState(0);
@@ -31,6 +31,7 @@ export default function ArcheryGame() {
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number }>(null);
   const [combo, setCombo] = useState(0);
   const [popping, setPopping] = useState<number | null>(null);
+  const [hintShown, setHintShown] = useState(false);
 
   const current: MergedQ | undefined = questions[qIdx % Math.max(questions.length, 1)];
 
@@ -49,7 +50,8 @@ export default function ArcheryGame() {
   }, []);
 
   const start = () => {
-    setScore(0); setCorrectCount(0); setTime(DURATION); setQIdx(0); setCombo(0);
+    setScore(0); setCorrectCount(0); setTime(DURATION + extraTime); setQIdx(0); setCombo(0);
+    setHintShown(false);
     newRound(questions[0]); setRunning(true);
   };
 
@@ -88,9 +90,20 @@ export default function ArcheryGame() {
       setFeedback({ ok: true, delta });
     } else {
       sfx.wrong();
-      setScore((s) => Math.max(0, s - 3));
+      if (!noPenalty) setScore((s) => Math.max(0, s - 3));
       setCombo(0);
       setFeedback({ ok: false, correctValue: current.answer });
+
+      if (giveHint && !hintShown) {
+        setHintShown(true);
+        setPopping(null);
+        setCombo(0);
+        setFeedback({ ok: false, correctValue: current.answer });
+        newRound(current); // repeat same question with new balloon positions
+        setTimeout(() => setFeedback(null), 1200);
+        return; // don't advance
+      }
+      setHintShown(false);
     }
     setTimeout(() => {
       setPopping(null);
@@ -134,16 +147,21 @@ export default function ArcheryGame() {
         <div className="absolute bottom-1 left-1/3 text-2xl">🌲</div>
         <div className="absolute bottom-1 right-6 text-2xl">🌳</div>
 
-        {/* Mascot question presenter */}
-        <div className="absolute left-3 top-3 z-10">
-          <Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={56} />
+        {/* Companion display */}
+        <div className="absolute left-3 top-3 z-10 flex flex-col items-center">
+          <span className={`text-4xl drop-shadow-lg ${feedback ? (feedback.ok ? "animate-bounce" : "animate-pulse") : "animate-[pulse_3s_ease-in-out_infinite]"}`}>
+            {companionEmoji}
+          </span>
         </div>
 
         {/* Prompt card */}
         <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-xl bg-white/95 px-5 py-2.5 text-center shadow-card border-2 border-primary/30">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{t("prompt", lang)}</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{t("prompt", lang)} {qIdx % Math.max(questions.length, 1) + 1}</p>
           <p className="text-xl font-extrabold text-primary">{current?.prompt ?? "—"}</p>
         </div>
+
+        {/* Hint overlay */}
+        {hintShown && <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-sm font-bold text-yellow-800 shadow-lg">💡 {t("the_answer_was", lang)}: {current?.answer}</div>}
 
         {/* Balloons */}
         {running && balloons.map((b) => (
@@ -168,7 +186,7 @@ export default function ArcheryGame() {
 
         <FeedbackBubble feedback={feedback} />
 
-        {!running && time === DURATION && (
+        {!running && time === DURATION + extraTime && (
           <div className="absolute inset-0 flex items-center justify-center">
             <button
               onClick={start}

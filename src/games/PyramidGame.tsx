@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { GameEndOverlay, GameHeader, FeedbackBubble, sfx } from "./GameShell";
-import { Mascot } from "@/components/Mascot";
+import { GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t } from "@/lib/i18n";
 
 export default function PyramidGame() {
-  const { lang, classLevel } = useApp();
+  const { lang, classLevel, companionEmoji } = useApp();
+  const { giveHint } = useCompanionAbility();
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [round, setRound] = useState(0);
@@ -15,6 +15,9 @@ export default function PyramidGame() {
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number }>(null);
   const TOTAL = 6;
   const N = classLevel === 8 ? 5 : 4;
+
+  // giveHint: skip complex implementation for Pyramid (as specified)
+  void giveHint;
 
   const bottom = useMemo(() => {
     const max = classLevel === 8 ? 25 : 12;
@@ -82,7 +85,11 @@ export default function PyramidGame() {
         <div className="absolute top-5 right-20 text-2xl opacity-70">☁️</div>
         <div className="absolute bottom-2 left-3 text-3xl">🐪</div>
         <div className="absolute bottom-2 right-3 text-2xl">🌵</div>
-        <div className="absolute left-2 top-2"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "think") : "think"} size={48} /></div>
+
+        {/* Companion display */}
+        <div className="absolute left-2 top-2 flex flex-col items-center z-10">
+          <span className={`text-4xl drop-shadow-lg ${feedback ? (feedback.ok ? "animate-bounce" : "animate-pulse") : "animate-[pulse_4s_ease-in-out_infinite]"}`}>{companionEmoji}</span>
+        </div>
 
         <p className="text-center text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3 mt-1">
           {t(classLevel === 3 ? "pyramid_hint_3" : "pyramid_hint_8", lang)}

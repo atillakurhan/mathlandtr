@@ -39,6 +39,15 @@ export function useMergedQuestions(game: GameId, difficulty: Difficulty) {
   return { questions: merged, loading, hasCustom: data.length > 0 };
 }
 
+export function useCompanionAbility() {
+  const { companionCharId } = useApp();
+  return {
+    noPenalty: companionCharId === "susi",
+    extraTime:  companionCharId === "pirasa" ? 15 : 0,
+    giveHint:   companionCharId === "yumurtacan",
+  } as const;
+}
+
 function shuffle<T>(a: T[]) {
   const x = [...a];
   for (let i = x.length - 1; i > 0; i--) {
