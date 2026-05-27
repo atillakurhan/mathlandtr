@@ -23,6 +23,7 @@ export default function ArcheryGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("archery", difficulty);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [time, setTime] = useState(DURATION);
   const [running, setRunning] = useState(false);
   const [qIdx, setQIdx] = useState(0);
@@ -48,7 +49,7 @@ export default function ArcheryGame() {
   }, []);
 
   const start = () => {
-    setScore(0); setTime(DURATION); setQIdx(0); setCombo(0);
+    setScore(0); setCorrectCount(0); setTime(DURATION); setQIdx(0); setCombo(0);
     newRound(questions[0]); setRunning(true);
   };
 
@@ -79,6 +80,7 @@ export default function ArcheryGame() {
     setPopping(b.id);
     if (ok) {
       sfx.correct();
+      setCorrectCount((c) => c + 1);
       const newCombo = combo + 1;
       const delta = 10 + Math.min(newCombo - 1, 4) * 2;
       setScore((s) => s + delta);
@@ -177,7 +179,7 @@ export default function ArcheryGame() {
           </div>
         )}
 
-        {!running && time === 0 && <GameEndOverlay score={score} game="archery" onRestart={start} />}
+        {!running && time === 0 && <GameEndOverlay score={score} game="archery" onRestart={start} correctCount={correctCount} />}
       </div>
     </div>
   );

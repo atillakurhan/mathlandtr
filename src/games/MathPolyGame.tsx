@@ -33,6 +33,7 @@ export default function MathPolyGame() {
   const { questions } = useMergedQuestions("mathpoly", difficulty);
   const [pos, setPos] = useState(0);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [turns, setTurns] = useState(10);
   const [pendingQ, setPendingQ] = useState<null | (typeof questions)[number]>(null);
   const [rolling, setRolling] = useState(false);
@@ -84,7 +85,7 @@ export default function MathPolyGame() {
   function answerQ(val: number) {
     if (!pendingQ) return;
     const ok = val === pendingQ.answer;
-    if (ok) { sfx.correct(); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
+    if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
     else { sfx.wrong(); setScore((s) => Math.max(0, s - 5)); setFeedback({ ok: false, correctValue: pendingQ.answer }); }
     setTimeout(() => { setPendingQ(null); setFeedback(null); }, 1100);
   }
@@ -100,7 +101,7 @@ export default function MathPolyGame() {
   }, [finished]);
 
   function restart() {
-    setPos(0); setScore(0); setTurns(10); setPendingQ(null); setFinished(false); setFeedback(null);
+    setPos(0); setScore(0); setCorrectCount(0); setTurns(10); setPendingQ(null); setFinished(false); setFeedback(null);
   }
 
   const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
@@ -151,7 +152,7 @@ export default function MathPolyGame() {
           })}
 
           <FeedbackBubble feedback={feedback} />
-          {finished && <GameEndOverlay score={score} game="mathpoly" onRestart={restart} />}
+          {finished && <GameEndOverlay score={score} game="mathpoly" onRestart={restart} correctCount={correctCount} />}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-3">

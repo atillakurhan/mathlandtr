@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 export default function GoalkeeperGame() {
   const { lang, classLevel } = useApp();
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [round, setRound] = useState(0);
   const TOTAL = 8;
   const [finished, setFinished] = useState(false);
@@ -63,7 +64,7 @@ export default function GoalkeeperGame() {
       setBallAnim(p);
       if (p >= 1) {
         clearInterval(id);
-        if (hit) { sfx.correct(); setScore((s) => s + 25); setFeedback({ ok: true, delta: 25 }); }
+        if (hit) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 25); setFeedback({ ok: true, delta: 25 }); }
         else { sfx.wrong(); setFeedback({ ok: false, correctValue: `[${target.x0}, ${target.x1}]` }); }
         setTimeout(() => { setFeedback(null); setBallAnim(null); advance(); }, 1100);
       }
@@ -74,7 +75,7 @@ export default function GoalkeeperGame() {
     if (feedback) return;
     const z = q3.zones[zoneIdx];
     const ok = z.val === q3.answer;
-    if (ok) { sfx.correct(); setScore((s) => s + 15); setFeedback({ ok: true, delta: 15 }); }
+    if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 15); setFeedback({ ok: true, delta: 15 }); }
     else { sfx.wrong(); setFeedback({ ok: false, correctValue: q3.answer }); }
     setTimeout(() => { setFeedback(null); advance(); }, 1100);
   }
@@ -83,7 +84,7 @@ export default function GoalkeeperGame() {
     if (round + 1 >= TOTAL) setFinished(true);
     else setRound((r) => r + 1);
   }
-  function restart() { setScore(0); setRound(0); setFinished(false); setFeedback(null); }
+  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setFeedback(null); }
 
   const path = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${50 - p.y * 1.5}`).join(" ");
 
@@ -140,7 +141,7 @@ export default function GoalkeeperGame() {
         <div className="absolute left-2 top-2"><Mascot mood={feedback ? (feedback.ok ? "cheer" : "sad") : "think"} size={50} /></div>
 
         <FeedbackBubble feedback={feedback} />
-        {finished && <GameEndOverlay score={score} game="goalie" onRestart={restart} />}
+        {finished && <GameEndOverlay score={score} game="goalie" onRestart={restart} correctCount={correctCount} />}
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4 shadow-soft">

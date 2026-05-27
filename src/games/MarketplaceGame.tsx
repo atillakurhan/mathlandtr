@@ -53,6 +53,7 @@ export default function MarketplaceGame() {
   const TOTAL = 8;
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [val, setVal] = useState("");
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number | string }>(null);
@@ -70,7 +71,7 @@ export default function MarketplaceGame() {
       return;
     }
     const ok = Math.abs(n - scenario.answer) < 0.011;
-    if (ok) { sfx.correct(); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
+    if (ok) { sfx.correct(); setCorrectCount((c) => c + 1); setScore((s) => s + 20); setFeedback({ ok: true, delta: 20 }); }
     else { sfx.wrong(); setFeedback({ ok: false, correctValue: `${scenario.answer} ${scenario.unit}` }); }
     setTimeout(() => {
       setFeedback(null);
@@ -80,7 +81,7 @@ export default function MarketplaceGame() {
     }, 1100);
   }
 
-  function restart() { setScore(0); setRound(0); setFinished(false); setVal(""); setFeedback(null); }
+  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setVal(""); setFeedback(null); }
 
   return (
     <div className="space-y-4">
@@ -121,7 +122,7 @@ export default function MarketplaceGame() {
         </div>
 
         <FeedbackBubble feedback={feedback} />
-        {finished && <GameEndOverlay score={score} game="market" onRestart={restart} />}
+        {finished && <GameEndOverlay score={score} game="market" onRestart={restart} correctCount={correctCount} />}
       </div>
     </div>
   );

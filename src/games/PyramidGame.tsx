@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 export default function PyramidGame() {
   const { lang, classLevel } = useApp();
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [round, setRound] = useState(0);
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number }>(null);
@@ -60,7 +61,7 @@ export default function PyramidGame() {
     const bonus = correct === total ? 20 : 0;
     const delta = correct * 5 + bonus;
     setScore((s) => s + delta);
-    if (correct === total) sfx.correct(); else if (correct === 0) sfx.wrong(); else sfx.pop();
+    if (correct === total) { sfx.correct(); setCorrectCount((c) => c + 1); } else if (correct === 0) sfx.wrong(); else sfx.pop();
     setFeedback({ ok: correct === total, delta });
     setTimeout(() => {
       setFeedback(null);
@@ -69,7 +70,7 @@ export default function PyramidGame() {
     }, 1200);
   }
 
-  function restart() { setScore(0); setRound(0); setFinished(false); setFeedback(null); }
+  function restart() { setScore(0); setCorrectCount(0); setRound(0); setFinished(false); setFeedback(null); }
 
   return (
     <div className="space-y-4">
@@ -117,7 +118,7 @@ export default function PyramidGame() {
         </div>
 
         <FeedbackBubble feedback={feedback} />
-        {finished && <GameEndOverlay score={score} game="pyramid" onRestart={restart} />}
+        {finished && <GameEndOverlay score={score} game="pyramid" onRestart={restart} correctCount={correctCount} />}
       </div>
     </div>
   );

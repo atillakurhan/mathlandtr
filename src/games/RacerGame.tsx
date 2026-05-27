@@ -11,6 +11,7 @@ export default function RacerGame() {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("racer", difficulty);
   const [score, setScore] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
   const [running, setRunning] = useState(false);
   const [qIdx, setQIdx] = useState(0);
   const [pos, setPos] = useState(0);
@@ -52,6 +53,7 @@ export default function RacerGame() {
     const ok = val === current.answer;
     if (ok) {
       sfx.correct();
+      setCorrectCount((c) => c + 1);
       setScore((s) => s + 12);
       setSpeed((s) => Math.min(2.2, s + 0.05));
       setFeedback({ ok: true, delta: 12 });
@@ -82,7 +84,7 @@ export default function RacerGame() {
   }, [finished]);
 
   function start() {
-    setScore(0); setLives(3); setPos(0); setQIdx(0); setSpeed(0.7); setFinished(false); setRunning(true); setFeedback(null);
+    setScore(0); setCorrectCount(0); setLives(3); setPos(0); setQIdx(0); setSpeed(0.7); setFinished(false); setRunning(true); setFeedback(null);
   }
 
   const choices = current?.choices ?? (current ? [current.answer, current.answer + 2, current.answer - 1, current.answer + 5] : []);
@@ -144,7 +146,7 @@ export default function RacerGame() {
             </button>
           </div>
         )}
-        {finished && <GameEndOverlay score={score} game="racer" onRestart={start} />}
+        {finished && <GameEndOverlay score={score} game="racer" onRestart={start} correctCount={correctCount} />}
       </div>
 
       {running && current && (
