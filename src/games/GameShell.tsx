@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useQuestions, submitScore, type Difficulty } from "@/hooks/use-questions";
-import { useStreak } from "@/hooks/use-streak";
 import { generateFallback, type FQ } from "@/lib/fallback-questions";
 import { t, GAMES, pickCheer, type GameId } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -39,13 +38,9 @@ export function useMergedQuestions(game: GameId, difficulty: Difficulty) {
   return { questions: merged, loading, hasCustom: data.length > 0 };
 }
 
+/** No-op stub kept for backward compatibility with games that still call it. */
 export function useCompanionAbility() {
-  const { companionCharId } = useApp();
-  return {
-    noPenalty: companionCharId === "susi",
-    extraTime:  companionCharId === "pirasa" ? 15 : 0,
-    giveHint:   companionCharId === "yumurtacan",
-  } as const;
+  return { noPenalty: false, extraTime: 0, giveHint: false } as const;
 }
 
 function shuffle<T>(a: T[]) {
@@ -102,38 +97,21 @@ export function GameEndOverlay({
   score,
   game,
   onRestart,
-  correctCount = 0,
 }: {
   score: number;
   game: GameId;
   onRestart: () => void;
   correctCount?: number;
 }) {
-  const { lang, playerName, classLevel, addXP, addCoins, refreshStreak, companionCharId, companionEmoji } = useApp();
-  const { recordActivity } = useStreak();
+  const { lang, playerName, classLevel, companionEmoji } = useApp();
   const g = GAMES.find((x) => x.id === game)!;
   const [submitted, setSubmitted] = useState(false);
-  const [streakBonus, setStreakBonus] = useState<{ coins: number; days: number } | null>(null);
-
-  // Companion ability bonuses
-  const abilityXpBonus = companionCharId === "abuzeriye" ? correctCount * 2 : 0;
-  const xpEarned = Math.max(5, Math.round(score / 5)) + abilityXpBonus;
-  const coinsEarned = Math.max(5, Math.round(score / 8));
 
   useEffect(() => {
     if (submitted) return;
     setSubmitted(true);
     submitScore(playerName || "Anonym", game, classLevel, score);
-    addXP(xpEarned);
-    addCoins(coinsEarned);
     sfx.win();
-    recordActivity().then(({ coinBonus, newStreak }) => {
-      refreshStreak(newStreak);
-      if (coinBonus > 0) {
-        addCoins(coinBonus);
-        setStreakBonus({ coins: coinBonus, days: newStreak });
-      }
-    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stars = score > 150 ? 3 : score > 60 ? 2 : score > 0 ? 1 : 0;
@@ -154,16 +132,7 @@ export function GameEndOverlay({
         </div>
         <p className="text-5xl font-extrabold text-primary tabular-nums">{score}</p>
         <p className="text-sm text-muted-foreground">{t("score", lang)}</p>
-        <div className="flex justify-center gap-3 mt-1 text-xs font-bold">
-          <span className="text-violet-600">+{xpEarned} XP{abilityXpBonus > 0 && <span className="opacity-70"> (+{abilityXpBonus} {companionEmoji})</span>}</span>
-          <span className="text-amber-600">+{coinsEarned} 🪙</span>
-        </div>
-        {streakBonus && (
-          <div className="mt-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 px-3 py-1.5 text-sm font-bold text-orange-700 dark:text-orange-300">
-            {t("streak_bonus", lang, { n: streakBonus.days, coins: streakBonus.coins })}
-          </div>
-        )}
-        <p className="text-sm font-semibold text-success mt-2">{t(stars >= 2 ? "cheer_great" : "cheer_keep", lang)}</p>
+        <p className="text-sm font-semibold text-success mt-3">{t(stars >= 2 ? "cheer_great" : "cheer_keep", lang)}</p>
         <div className="mt-5 flex gap-2 justify-center">
           <Button onClick={onRestart}><RotateCcw className="h-4 w-4 mr-1" />{t("play_again", lang)}</Button>
           <Link to="/"><Button variant="outline"><Home className="h-4 w-4 mr-1" />{t("back_home", lang)}</Button></Link>
@@ -211,7 +180,6 @@ export function GameHeader({
   );
 }
 
-// Floating reaction bubble — shows companion emoji + cheer text
 export function FeedbackBubble({
   feedback,
 }: {
