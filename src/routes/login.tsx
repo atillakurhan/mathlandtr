@@ -88,10 +88,9 @@ function LoginPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pw">{t("password", lang)}</Label>
-          {mode === "signup_student" && null}
+            <Input id="pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
 
-            </div>
-          )}
           <Button type="submit" className="w-full" disabled={busy}>
             {mode === "signin" ? "Anmelden" : isSignup ? "Registrieren" : ""}
           </Button>
