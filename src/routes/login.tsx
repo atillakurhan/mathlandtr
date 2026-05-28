@@ -88,19 +88,8 @@ function LoginPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pw">{t("password", lang)}</Label>
-            <Input id="pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          {mode === "signup_student" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="code">{t("optional_code", lang)}</Label>
-              <Input
-                id="code"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="ABC123"
-                maxLength={6}
-                className="font-mono tracking-widest uppercase"
-              />
+          {mode === "signup_student" && null}
+
             </div>
           )}
           <Button type="submit" className="w-full" disabled={busy}>

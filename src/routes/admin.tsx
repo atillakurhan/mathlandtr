@@ -33,7 +33,7 @@ interface Q {
 }
 
 function AdminPage() {
-  const { lang, classLevel, setClassLevel, unlockThresholds } = useApp();
+  const { lang, classLevel, unlockThresholds } = useApp();
   const { user, isTeacher, loading } = useAuth();
   const nav = useNavigate();
 
@@ -44,7 +44,7 @@ function AdminPage() {
   const [answer, setAnswer] = useState("");
   const [items, setItems] = useState<Q[]>([]);
   const [thresholds, setThresholds] = useState(unlockThresholds);
-  const [analytics, setAnalytics] = useState<{ player_name: string; total: number; xp: number; coins: number }[]>([]);
+  const [analytics, setAnalytics] = useState<{ player_name: string; total: number; best: number }[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => setThresholds(unlockThresholds), [unlockThresholds]);
@@ -110,47 +110,25 @@ function AdminPage() {
     setAnalyticsLoading(true);
     const { data: scores } = await supabase
       .from("scores")
-      .select("player_name, score, user_id")
+      .select("player_name, score")
       .eq("class_level", classLevel)
       .order("created_at", { ascending: false })
       .limit(500);
-
     if (!scores) { setAnalyticsLoading(false); return; }
 
-    const map = new Map<string, { total: number; userId: string | null }>();
+    const map = new Map<string, { total: number; best: number }>();
     for (const s of scores) {
       const ex = map.get(s.player_name);
-      if (ex) ex.total += s.score;
-      else map.set(s.player_name, { total: s.score, userId: s.user_id ?? null });
+      if (ex) { ex.total += s.score; ex.best = Math.max(ex.best, s.score); }
+      else map.set(s.player_name, { total: s.score, best: s.score });
     }
-
-    const userIds = [...map.values()].map((v) => v.userId).filter(Boolean) as string[];
-    const walletMap = new Map<string, { xp: number; coins: number }>();
-    if (userIds.length > 0) {
-      const { data: wallets } = await supabase
-        .from("wallets").select("user_id,xp,coins").in("user_id", userIds);
-      for (const w of wallets ?? []) walletMap.set(w.user_id, { xp: w.xp, coins: w.coins });
-    }
-
     const arr = [...map.entries()]
-      .map(([player_name, { total, userId }]) => ({
-        player_name,
-        total,
-        xp: userId ? (walletMap.get(userId)?.xp ?? 0) : 0,
-        coins: userId ? (walletMap.get(userId)?.coins ?? 0) : 0,
-      }))
+      .map(([player_name, v]) => ({ player_name, ...v }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 20);
 
     setAnalytics(arr);
     setAnalyticsLoading(false);
-  }
-
-  async function setActiveClass(level: 3 | 8) {
-    setClassLevel(level);
-    await supabase
-      .from("settings")
-      .upsert({ key: "active_class", value: { level } });
   }
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">…</div>;
@@ -166,51 +144,34 @@ function AdminPage() {
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <header>
         <h1 className="text-2xl font-bold">{t("teacher_panel", lang)}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("class_8", lang)}</p>
       </header>
 
-      {/* Global Settings */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-          <h2 className="font-semibold mb-3">{t("active_class", lang)}</h2>
-          <div className="flex gap-2">
-            {([3, 8] as const).map((c) => (
-              <Button
-                key={c}
-                variant={classLevel === c ? "default" : "outline"}
-                onClick={() => setActiveClass(c)}
-                className="flex-1"
-              >
-                {c === 3 ? t("class_3", lang) : t("class_8", lang)}
-              </Button>
-            ))}
+      {/* Thresholds */}
+      <section className="rounded-xl border border-border bg-card p-5 shadow-soft">
+        <h2 className="font-semibold mb-3 flex items-center gap-2">
+          <Lock className="h-4 w-4" /> {t("unlock_thresholds", lang)}
+        </h2>
+        <div className="flex gap-2 items-end max-w-md">
+          <div className="flex-1">
+            <Label className="text-xs">{t("medium", lang)}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={thresholds.medium}
+              onChange={(e) => setThresholds({ ...thresholds, medium: Number(e.target.value) })}
+            />
           </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
-          <h2 className="font-semibold mb-3 flex items-center gap-2">
-            <Lock className="h-4 w-4" /> {t("unlock_thresholds", lang)}
-          </h2>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Label className="text-xs">{t("medium", lang)}</Label>
-              <Input
-                type="number"
-                min={0}
-                value={thresholds.medium}
-                onChange={(e) => setThresholds({ ...thresholds, medium: Number(e.target.value) })}
-              />
-            </div>
-            <div className="flex-1">
-              <Label className="text-xs">{t("hard", lang)}</Label>
-              <Input
-                type="number"
-                min={0}
-                value={thresholds.hard}
-                onChange={(e) => setThresholds({ ...thresholds, hard: Number(e.target.value) })}
-              />
-            </div>
-            <Button onClick={saveThresholds}>{t("save", lang)}</Button>
+          <div className="flex-1">
+            <Label className="text-xs">{t("hard", lang)}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={thresholds.hard}
+              onChange={(e) => setThresholds({ ...thresholds, hard: Number(e.target.value) })}
+            />
           </div>
+          <Button onClick={saveThresholds}>{t("save", lang)}</Button>
         </div>
       </section>
 
@@ -252,7 +213,7 @@ function AdminPage() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={2}
-              placeholder="z.B.  7 × 8 = ?  /  √144 = ?"
+              placeholder="z.B.  √144 = ?   /   5x + 3 = 18,  x = ?"
               required
             />
           </div>
@@ -304,9 +265,8 @@ function AdminPage() {
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
                   <th className="pb-2 w-8">{t("rank", lang)}</th>
                   <th className="pb-2">{t("player", lang)}</th>
+                  <th className="pb-2 text-right">{t("high_score", lang)}</th>
                   <th className="pb-2 text-right">{t("total_score", lang)}</th>
-                  <th className="pb-2 text-right">XP</th>
-                  <th className="pb-2 text-right">🪙</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -314,9 +274,8 @@ function AdminPage() {
                   <tr key={row.player_name} className="py-1">
                     <td className="py-2 font-mono text-muted-foreground">{i + 1}.</td>
                     <td className="py-2 font-medium truncate max-w-[160px]">{row.player_name}</td>
+                    <td className="py-2 text-right text-accent-foreground/80 tabular-nums">{row.best}</td>
                     <td className="py-2 text-right font-bold text-primary tabular-nums">{row.total}</td>
-                    <td className="py-2 text-right text-violet-600 tabular-nums text-xs">{row.xp > 0 ? row.xp : "—"}</td>
-                    <td className="py-2 text-right text-amber-600 tabular-nums text-xs">{row.coins > 0 ? row.coins : "—"}</td>
                   </tr>
                 ))}
               </tbody>
