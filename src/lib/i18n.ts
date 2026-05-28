@@ -4,10 +4,10 @@ export type ClassLevel = 3 | 8;
 type Dict = Record<string, { tr: string; de: string }>;
 
 export const dict: Dict = {
-  app_title: { tr: "Matematik Dünyası", de: "Mathe-Welt" },
+  app_title: { tr: "Matematik Arena", de: "Mathe-Arena" },
   app_tag: {
-    tr: "Eğlenceli matematik oyunlarıyla 8. sınıf müfredatını pekiştir",
-    de: "Lerne Mathematik spielerisch — Klasse 8, Lehrplan Bayern",
+    tr: "8. sınıf matematiğini eğlenceli oyunlarla pekiştir — Realschule müfredatına uygun.",
+    de: "Mathe der Klasse 8 spielerisch üben — passend zum Realschul-Lehrplan.",
   },
   start_playing: { tr: "Hemen Oyna", de: "Jetzt Spielen" },
   leaderboard: { tr: "Liderlik Tablosu", de: "Bestenliste" },
@@ -19,7 +19,7 @@ export const dict: Dict = {
   signup: { tr: "Hesap Oluştur", de: "Registrieren" },
   display_name: { tr: "Ad Soyad", de: "Anzeigename" },
   class_3: { tr: "3. Sınıf", de: "Klasse 3" },
-  class_8: { tr: "8. Sınıf (Realschule)", de: "Klasse 8 (Realschule)" },
+  class_8: { tr: "8. Sınıf · Realschule", de: "Klasse 8 · Realschule" },
   difficulty: { tr: "Zorluk", de: "Schwierigkeit" },
   easy: { tr: "Kolay", de: "Leicht" },
   medium: { tr: "Orta", de: "Mittel" },
@@ -28,7 +28,7 @@ export const dict: Dict = {
   unlock_hint: { tr: "{n} puan kazan kilidi aç", de: "Hol {n} Punkte zum Freischalten" },
   questions: { tr: "Sorular", de: "Fragen" },
   add_question: { tr: "Soru Ekle", de: "Frage hinzufügen" },
-  prompt: { tr: "Soru metni", de: "Aufgabentext" },
+  prompt: { tr: "Soru", de: "Aufgabe" },
   answer: { tr: "Cevap", de: "Antwort" },
   delete: { tr: "Sil", de: "Löschen" },
   save: { tr: "Kaydet", de: "Speichern" },
@@ -40,7 +40,7 @@ export const dict: Dict = {
   start_game: { tr: "Oyuna Başla", de: "Spiel starten" },
   score: { tr: "Skor", de: "Punkte" },
   level: { tr: "Seviye", de: "Stufe" },
-  play_again: { tr: "Tekrar Oyna", de: "Nochmal", },
+  play_again: { tr: "Tekrar Oyna", de: "Nochmal" },
   back_home: { tr: "Ana Sayfa", de: "Startseite" },
   correct: { tr: "Doğru!", de: "Richtig!" },
   wrong: { tr: "Yanlış", de: "Falsch" },
@@ -49,37 +49,38 @@ export const dict: Dict = {
     de: "Keine Fragen vorhanden. Bitte im Lehrerbereich hinzufügen.",
   },
   language: { tr: "Dil", de: "Sprache" },
-  // ── Games (spec names) ──────────────────────────────────────────────────────
-  g_archery_name: { tr: "Okçu Matematik",     de: "Gleichungs-Labor" },
+  // ── Games (Klasse 8 only) ───────────────────────────────────────────────────
+  g_archery_name: { tr: "Denklem Okçusu",      de: "Gleichungs-Bogenschütze" },
   g_archery_desc: {
-    tr: "Denklemleri çözerek balonu patlat.",
-    de: "Löse Gleichungen und triff den Ballon.",
+    tr: "Doğru cevabı taşıyan balonu vur.",
+    de: "Triff den Ballon mit der richtigen Lösung.",
   },
-  g_mathpoly_name: { tr: "Eşitlik Adası",     de: "Gleichungs-Labor" },
+  g_mathpoly_name: { tr: "Matematik Krallığı", de: "Mathe-Königreich" },
   g_mathpoly_desc: {
-    tr: "Zar at, denklem çöz, ada fethеt.",
-    de: "Würfeln, Terme & Gleichungen lösen.",
+    tr: "Zar at, kareleri keşfet, denklemleri çöz.",
+    de: "Würfle, erkunde Felder und löse Gleichungen.",
   },
-  g_goalie_name: { tr: "Mancınık Savaşçısı", de: "Katapult-Krieger" },
+  g_goalie_name: { tr: "Parabol Mancınığı",    de: "Parabel-Katapult" },
   g_goalie_desc: {
-    tr: "Doğrunun denklemini ayarla, hedefi vur.",
-    de: "Stelle die Geradengleichung ein und triff das Ziel.",
+    tr: "a, b, c değerlerini ayarla, hedefi vur.",
+    de: "Stelle a, b, c ein und triff das Ziel.",
   },
-  g_pyramid_name: { tr: "Pizza Sarayı",       de: "Pizza Palast" },
+  g_pyramid_name: { tr: "Sayı Piramidi",       de: "Zahlenpyramide" },
   g_pyramid_desc: {
-    tr: "Müşterilere doğru kesirde dilim servis et.",
-    de: "Serviere den Gästen den richtigen Bruchteil.",
+    tr: "Komşu sayıları toplayarak piramidi tamamla.",
+    de: "Addiere die Nachbarn und vervollständige die Pyramide.",
   },
-  g_racer_name: { tr: "Hız Koridoru",         de: "Mathe-Rennstrecke" },
+  g_racer_name: { tr: "Matematik Yarışı",      de: "Mathe-Rennen" },
   g_racer_desc: {
-    tr: "Engelleri doğru cevapla aş.",
-    de: "Beantworte Aufgaben und überhole die Hindernisse.",
+    tr: "Süre dolmadan doğru cevapla geç.",
+    de: "Beantworte Aufgaben, bevor die Zeit abläuft.",
   },
-  g_market_name: { tr: "Süpermarket",         de: "Super-Markt" },
+  g_market_name: { tr: "Süpermarket Hesabı",   de: "Super-Markt" },
   g_market_desc: {
-    tr: "İndirim, KDV ve faiz hesapla.",
-    de: "Rabatt, Mehrwertsteuer und Zinsen berechnen.",
+    tr: "Yüzde, KDV ve faiz hesapla.",
+    de: "Prozent, Mehrwertsteuer und Zinsen berechnen.",
   },
+
   // ── Gamification ────────────────────────────────────────────────────────────
   xp:             { tr: "XP",             de: "XP" },
   coins:          { tr: "Münzen",         de: "Münzen" },
