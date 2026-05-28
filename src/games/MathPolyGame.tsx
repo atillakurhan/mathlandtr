@@ -1,135 +1,176 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, useCompanionAbility } from "./GameShell";
+import { useMergedQuestions, DifficultyPicker, GameEndOverlay, GameHeader, FeedbackBubble, sfx, type MergedQ } from "./GameShell";
 import type { Difficulty } from "@/hooks/use-questions";
 import { Button } from "@/components/ui/button";
 import { Dice5 } from "lucide-react";
 import { t } from "@/lib/i18n";
 
-type Tile =
-  | { kind: "start" }
-  | { kind: "treasure"; reward: number }
-  | { kind: "question" }
-  | { kind: "bonus"; reward: number }
-  | { kind: "trap"; cost: number };
+type TileKind = "start" | "question" | "treasure" | "bonus" | "trap" | "finish";
+interface Tile {
+  kind: TileKind;
+  label: string;
+  color: string;
+  value: number;
+}
 
-const BOARD: Tile[] = (() => {
-  const arr: Tile[] = [{ kind: "start" }];
-  const pool: Tile[] = [
-    { kind: "question" }, { kind: "question" },
-    { kind: "treasure", reward: 15 },
-    { kind: "bonus", reward: 8 },
-    { kind: "trap", cost: 5 },
-    { kind: "question" },
-  ];
-  for (let i = 0; i < 19; i++) arr.push(pool[i % pool.length]);
-  return arr;
-})();
+// Linear 14-tile board — kolay takip edilir, net bitiş
+const BOARD: Tile[] = [
+  { kind: "start",    label: "★",  color: "from-primary to-blue-600",         value: 0 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "treasure", label: "💎", color: "from-emerald-400 to-emerald-600",  value: 15 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "bonus",    label: "✨", color: "from-amber-400 to-orange-500",     value: 8 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "trap",     label: "⚡", color: "from-rose-500 to-red-600",         value: 5 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "treasure", label: "💎", color: "from-emerald-400 to-emerald-600",  value: 15 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "bonus",    label: "✨", color: "from-amber-400 to-orange-500",     value: 8 },
+  { kind: "question", label: "?",  color: "from-violet-400 to-purple-600",    value: 0 },
+  { kind: "trap",     label: "⚡", color: "from-rose-500 to-red-600",         value: 5 },
+  { kind: "finish",   label: "🏆", color: "from-yellow-400 to-amber-600",     value: 50 },
+];
+
+const DICE_FACES = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+
+// 4 benzersiz seçenek üret (cevap dahil)
+function buildChoices(q: MergedQ): number[] {
+  if (q.choices && q.choices.length >= 2) {
+    const uniq = [...new Set(q.choices)];
+    if (uniq.length >= 4) return shuffle(uniq.slice(0, 4));
+    const filler = uniq.slice();
+    let d = 1;
+    while (filler.length < 4) {
+      const cand = q.answer + (filler.length % 2 === 0 ? d : -d);
+      if (!filler.includes(cand)) filler.push(cand);
+      d++;
+    }
+    return shuffle(filler);
+  }
+  const set = new Set<number>([q.answer]);
+  let d = 1;
+  while (set.size < 4) {
+    set.add(q.answer + d);
+    if (set.size < 4) set.add(q.answer - d);
+    d++;
+  }
+  return shuffle([...set]);
+}
+function shuffle<T>(a: T[]) {
+  const x = [...a];
+  for (let i = x.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [x[i], x[j]] = [x[j], x[i]];
+  }
+  return x;
+}
 
 export default function MathPolyGame() {
   const { lang, unlockThresholds, companionEmoji } = useApp();
-  const { noPenalty, giveHint } = useCompanionAbility();
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const { questions } = useMergedQuestions("mathpoly", difficulty);
+
   const [pos, setPos] = useState(0);
   const [score, setScore] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [turns, setTurns] = useState(10);
-  const [pendingQ, setPendingQ] = useState<null | (typeof questions)[number]>(null);
-  const [rolling, setRolling] = useState(false);
   const [diceFace, setDiceFace] = useState(1);
+  const [rolling, setRolling] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [pendingQ, setPendingQ] = useState<null | { q: MergedQ; choices: number[] }>(null);
   const [feedback, setFeedback] = useState<null | { ok: boolean; delta?: number; correctValue?: number }>(null);
-  const [hintShown, setHintShown] = useState(false);
 
-  const tiles = BOARD;
+  // Snake layout: 7 sütun x 2 satır
+  const cols = 7;
   const positions = useMemo(() => {
-    const N = tiles.length;
-    const out: { x: number; y: number }[] = [];
-    const cols = 7, rows = 4;
-    for (let i = 0; i < N; i++) {
-      if (i < cols) out.push({ x: i / (cols - 1), y: 0 });
-      else if (i < cols + rows - 1) out.push({ x: 1, y: (i - cols + 1) / (rows - 1) });
-      else if (i < cols * 2 + rows - 2) out.push({ x: 1 - (i - cols - rows + 2) / (cols - 1), y: 1 });
-      else out.push({ x: 0, y: 1 - (i - cols * 2 - rows + 3) / (rows - 1) });
+    return BOARD.map((_, i) => {
+      const row = Math.floor(i / cols);
+      const colInRow = row % 2 === 0 ? i % cols : cols - 1 - (i % cols);
+      return { x: colInRow / (cols - 1), y: row / 1 };
+    });
+  }, []);
+
+  function handleTile(idx: number) {
+    const tile = BOARD[idx];
+    if (tile.kind === "treasure") {
+      sfx.correct();
+      setScore((s) => s + tile.value);
+      setFeedback({ ok: true, delta: tile.value });
+      setTimeout(() => setFeedback(null), 900);
+    } else if (tile.kind === "bonus") {
+      sfx.pop();
+      setScore((s) => s + tile.value);
+      setFeedback({ ok: true, delta: tile.value });
+      setTimeout(() => setFeedback(null), 900);
+    } else if (tile.kind === "trap") {
+      sfx.wrong();
+      setScore((s) => Math.max(0, s - tile.value));
+      setFeedback({ ok: false });
+      setTimeout(() => setFeedback(null), 900);
+    } else if (tile.kind === "question") {
+      const q = questions[Math.floor(Math.random() * Math.max(questions.length, 1))];
+      if (!q) return;
+      setPendingQ({ q, choices: buildChoices(q) });
+    } else if (tile.kind === "finish") {
+      sfx.win();
+      setScore((s) => s + tile.value);
+      setTimeout(() => setFinished(true), 700);
     }
-    return out;
-  }, [tiles.length]);
+  }
 
   function roll() {
     if (pendingQ || finished || rolling) return;
-    setRolling(true); sfx.click();
-    const flip = setInterval(() => setDiceFace(1 + Math.floor(Math.random() * 6)), 80);
+    setRolling(true);
+    sfx.click();
+    const flip = setInterval(() => setDiceFace(1 + Math.floor(Math.random() * 6)), 90);
     const dice = 1 + Math.floor(Math.random() * 6);
-    const target = (pos + dice) % tiles.length;
     setTimeout(() => {
       clearInterval(flip);
       setDiceFace(dice);
+      // Bitişi geçme — clamp
+      const target = Math.min(pos + dice, BOARD.length - 1);
       setPos(target);
-      const tile = tiles[target];
       setRolling(false);
-      if (tile.kind === "treasure") { sfx.correct(); setScore((s) => s + tile.reward); setFeedback({ ok: true, delta: tile.reward }); setTimeout(() => setFeedback(null), 900); }
-      else if (tile.kind === "bonus") { sfx.pop(); setScore((s) => s + tile.reward); setFeedback({ ok: true, delta: tile.reward }); setTimeout(() => setFeedback(null), 900); }
-      else if (tile.kind === "trap") { sfx.wrong(); setScore((s) => Math.max(0, s - tile.cost)); setFeedback({ ok: false, correctValue: undefined }); setTimeout(() => setFeedback(null), 900); }
-      else if (tile.kind === "question") {
-        const q = questions[Math.floor(Math.random() * Math.max(questions.length, 1))];
-        if (q) setPendingQ(q);
-      }
-      setTurns((tv) => {
-        const nt = tv - 1;
-        if (nt <= 0) setTimeout(() => setFinished(true), 600);
-        return nt;
-      });
-    }, 700);
+      setTimeout(() => handleTile(target), 350);
+    }, 800);
   }
 
   function answerQ(val: number) {
     if (!pendingQ) return;
-    const ok = val === pendingQ.answer;
+    const ok = val === pendingQ.q.answer;
     if (ok) {
       sfx.correct();
-      setCorrectCount((c) => c + 1);
       setScore((s) => s + 20);
       setFeedback({ ok: true, delta: 20 });
     } else {
-      if (giveHint && !hintShown) {
-        if (!noPenalty) setScore((s) => Math.max(0, s - 5));
-        sfx.wrong();
-        setHintShown(true);
-        setFeedback({ ok: false, correctValue: pendingQ.answer });
-        // DON'T call setTimeout to clear pendingQ — keep the question
-        setTimeout(() => setFeedback(null), 1500);
-        return;
-      }
-      setHintShown(false);
-      if (!noPenalty) {
-        sfx.wrong();
-        setScore((s) => Math.max(0, s - 5));
-        setFeedback({ ok: false, correctValue: pendingQ.answer });
-      } else {
-        sfx.wrong();
-        setFeedback({ ok: false, correctValue: pendingQ.answer });
-      }
+      sfx.wrong();
+      setScore((s) => Math.max(0, s - 5));
+      setFeedback({ ok: false, correctValue: pendingQ.q.answer });
     }
-    setTimeout(() => { setPendingQ(null); setFeedback(null); }, 1100);
+    setTimeout(() => {
+      setPendingQ(null);
+      setFeedback(null);
+    }, 1200);
   }
 
   const totalKey = "ma_total_mathpoly";
-  const total = typeof window !== "undefined" ? Number(localStorage.getItem(totalKey) ?? 0) : 0;
-  const unlocked = { easy: true, medium: total >= unlockThresholds.medium, hard: total >= unlockThresholds.hard };
+  const totalRef = typeof window !== "undefined" ? Number(localStorage.getItem(totalKey) ?? 0) : 0;
+  const unlocked = {
+    easy: true,
+    medium: totalRef >= unlockThresholds.medium,
+    hard: totalRef >= unlockThresholds.hard,
+  };
   useEffect(() => {
     if (finished && score > 0 && typeof window !== "undefined") {
-      localStorage.setItem(totalKey, String(total + score));
+      localStorage.setItem(totalKey, String(totalRef + score));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
 
   function restart() {
-    setPos(0); setScore(0); setCorrectCount(0); setTurns(10); setPendingQ(null); setFinished(false); setFeedback(null);
-    setHintShown(false);
+    setPos(0); setScore(0); setPendingQ(null); setFinished(false); setFeedback(null);
   }
 
-  const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+  const tilesLeft = BOARD.length - 1 - pos;
 
   return (
     <div className="space-y-4">
@@ -138,77 +179,72 @@ export default function MathPolyGame() {
         score={score}
         right={<>
           <DifficultyPicker difficulty={difficulty} setDifficulty={setDifficulty} unlocked={unlocked} />
-          <span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">🎲 {turns}</span>
+          <span className="rounded-md bg-secondary px-2 py-1 text-xs font-bold">🏁 {tilesLeft}</span>
         </>}
       />
 
-      <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-        <div className="relative aspect-[7/4] rounded-2xl border border-border bg-gradient-to-br from-fuchsia-100 via-purple-50 to-indigo-100 shadow-card overflow-hidden">
-          <div className="absolute top-2 right-2 text-3xl opacity-50">🏰</div>
-          <div className="absolute bottom-2 left-2 text-2xl opacity-60">✨</div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+        {/* Board */}
+        <div className="relative aspect-[7/2] rounded-2xl border border-border bg-gradient-to-br from-fuchsia-50 via-purple-50 to-indigo-100 p-4 shadow-card overflow-hidden">
+          <div className="absolute top-2 right-3 text-3xl opacity-40">🏰</div>
+          <div className="absolute bottom-2 left-3 text-2xl opacity-40">✨</div>
 
-          {tiles.map((tile, i) => {
+          {BOARD.map((tile, i) => {
             const p = positions[i];
-            const color =
-              tile.kind === "start" ? "bg-gradient-to-br from-primary to-blue-600 text-primary-foreground" :
-              tile.kind === "treasure" ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white" :
-              tile.kind === "bonus" ? "bg-gradient-to-br from-amber-400 to-orange-500 text-white" :
-              tile.kind === "trap" ? "bg-gradient-to-br from-rose-500 to-red-600 text-white" :
-              "bg-card text-foreground";
-            const label =
-              tile.kind === "start" ? "★" :
-              tile.kind === "treasure" ? "💎" :
-              tile.kind === "bonus" ? "✨" :
-              tile.kind === "trap" ? "⚡" : "?";
+            const isHere = pos === i;
             return (
               <div
                 key={i}
-                style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  left: `calc(${p.x * 100}% * 0.86 + 7%)`,
+                  top:  `calc(${p.y * 100}% * 0.6 + 20%)`,
+                }}
+                className="absolute -translate-x-1/2 -translate-y-1/2 transition-all"
               >
-                <div className={`relative h-11 w-11 sm:h-12 sm:w-12 rounded-lg ${color} flex items-center justify-center text-base font-bold shadow-soft border-2 border-white/40 ${pos === i ? "ring-2 ring-foreground scale-110" : ""}`}>
-                  {label}
-                  {pos === i && (
-                    <div className="absolute -top-4 -right-2 text-2xl drop-shadow animate-bounce">{companionEmoji}</div>
+                <div className={`relative h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br ${tile.color} text-white flex items-center justify-center text-lg font-extrabold shadow-soft border-2 border-white/50 ${isHere ? "ring-4 ring-foreground/70 scale-110 z-10" : ""}`}>
+                  {tile.label}
+                  {isHere && (
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-3xl drop-shadow animate-bounce">
+                      {companionEmoji}
+                    </div>
                   )}
                 </div>
+                <div className="mt-1 text-center text-[9px] font-mono text-muted-foreground">{i}</div>
               </div>
             );
           })}
 
           <FeedbackBubble feedback={feedback} />
-          {finished && <GameEndOverlay score={score} game="mathpoly" onRestart={restart} correctCount={correctCount} />}
+          {finished && <GameEndOverlay score={score} game="mathpoly" onRestart={restart} />}
         </div>
 
+        {/* Controls */}
         <div className="rounded-2xl border border-border bg-card p-4 shadow-soft flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className={`text-4xl ${pendingQ ? "animate-pulse" : "animate-[pulse_3s_ease-in-out_infinite]"}`}>{companionEmoji}</span>
-            <h3 className="font-bold text-sm">{t("adventure_board", lang)}</h3>
-          </div>
-          <p className="text-xs text-muted-foreground">{t("board_legend", lang)}</p>
+          <p className="text-xs text-muted-foreground text-center">{t("board_legend", lang)}</p>
 
-          <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 text-white text-5xl shadow-glow ${rolling ? "animate-spin" : ""}`}>
-            {diceFaces[diceFace - 1]}
+          <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 text-white text-6xl shadow-glow ${rolling ? "animate-spin" : ""}`}>
+            {DICE_FACES[diceFace - 1]}
           </div>
 
-          <Button onClick={roll} disabled={!!pendingQ || rolling || finished} size="lg">
+          <Button onClick={roll} disabled={!!pendingQ || rolling || finished} size="lg" className="w-full">
             <Dice5 className="h-5 w-5 mr-1" /> {rolling ? t("rolling", lang) : t("roll_dice", lang)}
           </Button>
 
-          {pendingQ && (
-            <div className="rounded-xl bg-secondary p-3 mt-2 space-y-2 border-2 border-primary/30 animate-in slide-in-from-bottom">
-              <p className="text-base font-extrabold text-primary text-center">{pendingQ.prompt}</p>
-              {hintShown && (
-                <p className="text-xs text-yellow-700 font-bold text-center bg-yellow-50 border border-yellow-300 rounded px-2 py-1">
-                  💡 {t("the_answer_was", lang)}: {pendingQ.answer}
-                </p>
-              )}
+          {pendingQ ? (
+            <div className="rounded-xl bg-secondary p-3 space-y-2 border-2 border-primary/40 animate-in slide-in-from-bottom">
+              <p className="text-base font-extrabold text-primary text-center">{pendingQ.q.prompt}</p>
               <div className="grid grid-cols-2 gap-2">
-                {(pendingQ.choices ?? [pendingQ.answer, pendingQ.answer + 1, pendingQ.answer - 1, pendingQ.answer + 3]).map((c) => (
-                  <Button key={c} variant="outline" className="font-bold" onClick={() => answerQ(c)} disabled={!!feedback}>{c}</Button>
+                {pendingQ.choices.map((c, idx) => (
+                  <Button key={`${c}-${idx}`} variant="outline" className="font-bold" onClick={() => answerQ(c)} disabled={!!feedback}>
+                    {c}
+                  </Button>
                 ))}
               </div>
             </div>
+          ) : (
+            <p className="text-xs text-center text-muted-foreground italic">
+              {finished ? "🏆" : pos === 0 ? "🎲 Würfle, um zu starten!" : `📍 ${pos} / ${BOARD.length - 1}`}
+            </p>
           )}
         </div>
       </div>
