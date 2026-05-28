@@ -56,8 +56,9 @@ function LeaderboardPage() {
         <Trophy className="h-6 w-6 text-accent" />
         <h1 className="text-2xl font-bold">{t("leaderboard", lang)}</h1>
         <span className="ml-auto text-sm text-muted-foreground">
-          {classLevel === 3 ? t("class_3", lang) : t("class_8", lang)}
+          {t("class_8", lang)}
         </span>
+
       </div>
 
       <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">

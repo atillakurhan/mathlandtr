@@ -6,14 +6,14 @@ import { GAMES, t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Sparkles, Zap, Flame } from "lucide-react";
+import { Trophy, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
-  const { lang, classLevel, playerName, setPlayerName, xp, coins, streakDays, companionEmoji } = useApp();
+  const { lang, classLevel, playerName, setPlayerName } = useApp();
   const { user } = useAuth();
   const [nameDraft, setNameDraft] = useState(playerName);
   const [topScores, setTopScores] = useState<{ player_name: string; total: number }[]>([]);
@@ -47,7 +47,7 @@ function HomePage() {
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
             <Sparkles className="h-3.5 w-3.5" />
-            {classLevel === 3 ? t("class_3", lang) : t("class_8", lang)}
+            {t("class_8", lang)}
           </div>
           <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold tracking-tight">
             {t("app_title", lang)}
@@ -55,26 +55,6 @@ function HomePage() {
           <p className="mt-2 max-w-xl text-base sm:text-lg text-primary-foreground/85">
             {t("app_tag", lang)}
           </p>
-
-          {/* Gamification stats for logged-in users */}
-          {user && (
-            <div className="mt-4 flex flex-wrap gap-3">
-              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
-                <span className="text-xl">{companionEmoji}</span>
-              </span>
-              {streakDays > 0 && (
-                <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
-                  <Flame className="h-4 w-4" /> {streakDays} Tage
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
-                <Zap className="h-4 w-4" /> {xp} XP
-              </span>
-              <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-bold">
-                🪙 {coins}
-              </span>
-            </div>
-          )}
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             {!user && (
@@ -99,7 +79,7 @@ function HomePage() {
             {!user && (
               <Link to="/login">
                 <Button className="bg-white text-primary hover:bg-white/90 font-bold">
-                  Anmelden / Registrieren
+                  {t("login", lang)} / {t("signup", lang)}
                 </Button>
               </Link>
             )}
@@ -110,37 +90,40 @@ function HomePage() {
       {/* Game grid */}
       <section className="mt-8">
         <h2 className="text-xl font-bold mb-4">
-          {classLevel === 3 ? t("class_3", lang) : t("class_8", lang)} · {t("start_playing", lang)}
+          {t("class_8", lang)} · {t("start_playing", lang)}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {GAMES.map((g) => (
-            <Link
-              key={g.id}
-              to={"/games/$gameId"}
-              params={{ gameId: g.id }}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
-            >
-              <div className={`relative h-28 bg-gradient-to-br ${g.gradient} overflow-hidden`}>
-                <div className="absolute inset-0 opacity-30 text-3xl flex items-center justify-around px-4">
-                  {g.scene.split("").map((s, i) => (
-                    <span key={i} style={{ transform: `translateY(${(i % 2) * 8}px)` }}>{s}</span>
-                  ))}
+          {GAMES.map((g) => {
+            const sceneChars = [...g.scene];
+            return (
+              <Link
+                key={g.id}
+                to={"/games/$gameId"}
+                params={{ gameId: g.id }}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-card"
+              >
+                <div className={`relative h-28 bg-gradient-to-br ${g.gradient} overflow-hidden`}>
+                  <div className="absolute inset-0 opacity-30 text-3xl flex items-center justify-around px-4">
+                    {sceneChars.map((s, i) => (
+                      <span key={i} style={{ transform: `translateY(${(i % 2) * 8}px)` }}>{s}</span>
+                    ))}
+                  </div>
+                  <div className="absolute -right-3 -bottom-4 text-7xl drop-shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    {g.emoji}
+                  </div>
+                  <div className="absolute left-3 top-3 rounded-full bg-white/25 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white tracking-wide">
+                    K8
+                  </div>
                 </div>
-                <div className="absolute -right-3 -bottom-4 text-7xl drop-shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
-                  {g.emoji}
+                <div className="p-4">
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                    {t(g.nameKey, lang)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">{t(g.descKey, lang)}</p>
                 </div>
-                <div className="absolute left-3 top-3 rounded-full bg-white/25 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white tracking-wide">
-                  {classLevel === 3 ? "K3" : "K8"}
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
-                  {t(g.nameKey, lang)}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">{t(g.descKey, lang)}</p>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </section>
 

@@ -21,7 +21,6 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
 
   const isSignup = mode !== "signin";
@@ -36,7 +35,7 @@ function LoginPage() {
         nav({ to: "/" });
       } else {
         const role = mode === "signup_teacher" ? "teacher" : "student";
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -45,18 +44,7 @@ function LoginPage() {
           },
         });
         if (error) throw error;
-
-        // If student with invite code → join classroom
-        if (role === "student" && inviteCode.trim() && data.user) {
-          const code = inviteCode.trim().toUpperCase();
-          const { data: cls } = await supabase.from("classrooms").select("id").eq("invite_code", code).single();
-          if (cls) {
-            await supabase.from("classroom_members").insert({ classroom_id: cls.id, student_id: data.user.id });
-          } else {
-            toast.warning(t("invalid_code", lang) + " — " + "Trotzdem registriert.");
-          }
-        }
-        toast.success("Registrierung erfolgreich! Bitte E-Mail bestätigen.");
+        toast.success("Registrierung erfolgreich!");
         nav({ to: "/" });
       }
     } catch (err: unknown) {
@@ -65,6 +53,7 @@ function LoginPage() {
       setBusy(false);
     }
   }
+
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-12">
@@ -101,19 +90,7 @@ function LoginPage() {
             <Label htmlFor="pw">{t("password", lang)}</Label>
             <Input id="pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          {mode === "signup_student" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="code">{t("optional_code", lang)}</Label>
-              <Input
-                id="code"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="ABC123"
-                maxLength={6}
-                className="font-mono tracking-widest uppercase"
-              />
-            </div>
-          )}
+
           <Button type="submit" className="w-full" disabled={busy}>
             {mode === "signin" ? "Anmelden" : isSignup ? "Registrieren" : ""}
           </Button>
