@@ -32,177 +32,18 @@ export type Database = {
         }
         Relationships: []
       }
-      characters: {
-        Row: {
-          ability_de: string | null
-          emoji: string
-          id: string
-          is_starter: boolean
-          mentor_for_game: string | null
-          name: string
-          price: number
-        }
-        Insert: {
-          ability_de?: string | null
-          emoji?: string
-          id: string
-          is_starter?: boolean
-          mentor_for_game?: string | null
-          name: string
-          price?: number
-        }
-        Update: {
-          ability_de?: string | null
-          emoji?: string
-          id?: string
-          is_starter?: boolean
-          mentor_for_game?: string | null
-          name?: string
-          price?: number
-        }
-        Relationships: []
-      }
-      classroom_members: {
-        Row: {
-          classroom_id: string
-          id: string
-          joined_at: string
-          student_id: string
-        }
-        Insert: {
-          classroom_id: string
-          id?: string
-          joined_at?: string
-          student_id: string
-        }
-        Update: {
-          classroom_id?: string
-          id?: string
-          joined_at?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "classroom_members_classroom_id_fkey"
-            columns: ["classroom_id"]
-            isOneToOne: false
-            referencedRelation: "classrooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "classroom_members_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      classrooms: {
-        Row: {
-          created_at: string
-          id: string
-          invite_code: string
-          name: string
-          school: string | null
-          teacher_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          invite_code?: string
-          name: string
-          school?: string | null
-          teacher_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          invite_code?: string
-          name?: string
-          school?: string | null
-          teacher_id?: string
-        }
-        Relationships: []
-      }
-      owned_characters: {
-        Row: {
-          character_id: string
-          id: string
-          is_companion: boolean
-          purchased_at: string
-          user_id: string
-        }
-        Insert: {
-          character_id: string
-          id?: string
-          is_companion?: boolean
-          purchased_at?: string
-          user_id: string
-        }
-        Update: {
-          character_id?: string
-          id?: string
-          is_companion?: boolean
-          purchased_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owned_characters_character_id_fkey"
-            columns: ["character_id"]
-            isOneToOne: false
-            referencedRelation: "characters"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      owned_items: {
-        Row: {
-          equipped_on_character: string | null
-          id: string
-          item_id: string
-          purchased_at: string
-          user_id: string
-        }
-        Insert: {
-          equipped_on_character?: string | null
-          id?: string
-          item_id: string
-          purchased_at?: string
-          user_id: string
-        }
-        Update: {
-          equipped_on_character?: string | null
-          id?: string
-          item_id?: string
-          purchased_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owned_items_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "wardrobe_items"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       questions: {
         Row: {
           answer_numeric: number | null
           answer_text: string | null
           choices: Json | null
           class_level: number
-          classroom_id: string | null
           created_at: string
           created_by: string | null
           difficulty: string
           game: string
           id: string
           locale: string
-          owner_type: string | null
           payload: Json | null
           prompt: string
         }
@@ -211,14 +52,12 @@ export type Database = {
           answer_text?: string | null
           choices?: Json | null
           class_level: number
-          classroom_id?: string | null
           created_at?: string
           created_by?: string | null
           difficulty?: string
           game: string
           id?: string
           locale?: string
-          owner_type?: string | null
           payload?: Json | null
           prompt: string
         }
@@ -227,14 +66,12 @@ export type Database = {
           answer_text?: string | null
           choices?: Json | null
           class_level?: number
-          classroom_id?: string | null
           created_at?: string
           created_by?: string | null
           difficulty?: string
           game?: string
           id?: string
           locale?: string
-          owner_type?: string | null
           payload?: Json | null
           prompt?: string
         }
@@ -248,7 +85,6 @@ export type Database = {
           id: string
           player_name: string
           score: number
-          user_id: string | null
         }
         Insert: {
           class_level: number
@@ -257,7 +93,6 @@ export type Database = {
           id?: string
           player_name: string
           score?: number
-          user_id?: string | null
         }
         Update: {
           class_level?: number
@@ -266,79 +101,6 @@ export type Database = {
           id?: string
           player_name?: string
           score?: number
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      streaks: {
-        Row: {
-          current_days: number
-          freeze_used_at: string | null
-          last_activity_date: string | null
-          longest_days: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          current_days?: number
-          freeze_used_at?: string | null
-          last_activity_date?: string | null
-          longest_days?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          current_days?: number
-          freeze_used_at?: string | null
-          last_activity_date?: string | null
-          longest_days?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      wallets: {
-        Row: {
-          coins: number
-          updated_at: string
-          user_id: string
-          xp: number
-        }
-        Insert: {
-          coins?: number
-          updated_at?: string
-          user_id: string
-          xp?: number
-        }
-        Update: {
-          coins?: number
-          updated_at?: string
-          user_id?: string
-          xp?: number
-        }
-        Relationships: []
-      }
-      wardrobe_items: {
-        Row: {
-          id: string
-          name_de: string
-          price: number
-          slot: string
-          unlock_condition: string | null
-        }
-        Insert: {
-          id: string
-          name_de: string
-          price?: number
-          slot: string
-          unlock_condition?: string | null
-        }
-        Update: {
-          id?: string
-          name_de?: string
-          price?: number
-          slot?: string
-          unlock_condition?: string | null
         }
         Relationships: []
       }
